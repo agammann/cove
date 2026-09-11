@@ -1,0 +1,14 @@
+{
+  "checkedAt": "2026-09-11T01:46:49.478Z",
+  "browser": "Playwright Chromium",
+  "desktop": [
+    1536,
+    1024
+  ],
+  "mobile": [
+    390,
+    844
+  ],
+  "journey": "account verification, create/edit, copy, conflict retry, stale snapshot, compare, export/import, OAuth consent, grant edit/revocation, literal malicious content, deletion",
+  "status": "passed"
+}

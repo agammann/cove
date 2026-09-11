@@ -1,0 +1,12 @@
+{
+  "checkedAt": "2026-09-11T01:49:40.527Z",
+  "image": "sha256:cf921320a54a405e85ba0f177481b8aa7ffb01dd9124613c3265b3de3c506143",
+  "freshDatabaseMigration": "passed",
+  "productionHealthAndFrontend": "passed",
+  "hostValidation": "passed",
+  "nonRootReadOnlyContainer": "passed",
+  "restart": "passed",
+  "insecureDemoRejected": "passed",
+  "publicDeployment": false,
+  "disposableResourcesRemoved": true
+}

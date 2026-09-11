@@ -1,0 +1,10 @@
+{
+  "date": "2026-09-11T01:45:49.638Z",
+  "backupFormat": "PostgreSQL custom",
+  "restoredRevisions": 12,
+  "restore": "passed",
+  "deletedAccountReconciliation": "passed",
+  "allAccessRevokedOnRecovery": "passed",
+  "databaseRestartPersistence": "passed",
+  "disposableDatabaseRemoved": true
+}

@@ -1,0 +1,9 @@
+# Export and import
+
+Project settings offers a schema-version-1 JSON export and a readable Markdown export. JSON includes metadata, every revision/context with author attribution and UTC time, and handoff snapshots with revision/replacement references. Markdown contains the saved revisions and handoffs. Neither includes passwords, sessions, OAuth tokens, authentication bindings, or live grants.
+
+Account settings imports JSON into a new project owned by the signed-in user. Validation rejects unknown schema versions/fields, oversized bodies, invalid fields, duplicate IDs, non-contiguous revisions, missing handoff revisions, snapshots that disagree with their pinned context, and invalid or forward/cyclic replacement references. Every revision, handoff, entry, and reference ID is remapped. Historical authors become `Imported: ...` attribution, with non-authenticated import actor IDs. Source locations remain inert data. No grant is created and no action is executed.
+
+Import is a single transaction; errors leave no partial project. The account's project, revision, and storage limits are checked before insertion. Importing a valid export twice intentionally creates two independent projects; it does not merge or overwrite an existing project.
+
+The browser download/import limit is 8 MiB. For an existing installation whose configured limits allow a larger project, an operator may provide a database-assisted export after authenticating the owner: use a repeatable-read transaction selecting that owner's project ID, all its revisions and handoffs in order, and construct the same versioned schema without authentication tables. Never send a whole database dump as an individual user's project export. A large result must be split into new projects by an explicit owner decision before it can be imported through the bounded first-release UI. This size-bound limitation is a release caveat, not an implemented streaming-export feature.

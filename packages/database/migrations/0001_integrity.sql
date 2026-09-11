@@ -1,0 +1,20 @@
+ALTER TABLE cove_owners ADD CONSTRAINT owner_auth_user FOREIGN KEY(id) REFERENCES "user"(id) ON DELETE CASCADE;
+ALTER TABLE projects ADD CONSTRAINT positive_version CHECK(version>0);
+ALTER TABLE revisions ADD CONSTRAINT positive_revision CHECK(version>0);
+ALTER TABLE projects ADD CONSTRAINT current_revision FOREIGN KEY(id,version) REFERENCES revisions(project_id,version) DEFERRABLE INITIALLY DEFERRED;
+CREATE INDEX projects_owner_updated ON projects(owner_id,updated_at DESC,id);
+CREATE INDEX revisions_project_time ON revisions(project_id,created_at DESC);
+CREATE INDEX handoffs_project_time ON handoffs(project_id,created_at DESC);
+CREATE INDEX events_project_time ON events(project_id,created_at DESC);
+CREATE INDEX measurements_owner ON measurements(owner_id,kind);
+ALTER TABLE revisions ADD COLUMN search_document tsvector GENERATED ALWAYS AS (to_tsvector('simple',context::text)) STORED;
+CREATE INDEX revisions_search ON revisions USING GIN(search_document);
+CREATE INDEX projects_search ON projects USING GIN(to_tsvector('simple',name||' '||description));
+CREATE FUNCTION cove_immutable() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN RAISE EXCEPTION 'Historical records are immutable'; END $$;
+CREATE TRIGGER immutable_revision BEFORE UPDATE ON revisions FOR EACH ROW EXECUTE FUNCTION cove_immutable();
+CREATE TRIGGER immutable_handoff BEFORE UPDATE ON handoffs FOR EACH ROW EXECUTE FUNCTION cove_immutable();
+CREATE FUNCTION cove_grant_owner() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN
+IF NOT EXISTS(SELECT 1 FROM projects p JOIN connections c ON p.owner_id=c.owner_id WHERE p.id=NEW.project_id AND c.id=NEW.connection_id) THEN RAISE EXCEPTION 'Grant owner mismatch'; END IF;
+IF NOT (NEW.capabilities ? 'read') OR NOT NEW.capabilities <@ '["read","write","handoff"]'::jsonb THEN RAISE EXCEPTION 'Invalid capabilities'; END IF;
+RETURN NEW; END $$;
+CREATE TRIGGER grant_owner BEFORE INSERT OR UPDATE ON grants FOR EACH ROW EXECUTE FUNCTION cove_grant_owner();

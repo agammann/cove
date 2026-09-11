@@ -1,0 +1,59 @@
+{
+  "completeness": "partial",
+  "deferred": [],
+  "documentType": "codex-security.coverage",
+  "excludePaths": [],
+  "explicitExclusions": [],
+  "includePaths": [
+    "."
+  ],
+  "inventoryStrategy": "directory",
+  "mode": "repository",
+  "openQuestions": [],
+  "scanId": "069c134c-4783-469e-a469-4b4e1e118bad",
+  "schemaVersion": "1.0",
+  "surfaces": [
+    {
+      "disposition": "reported",
+      "id": "configuration-output",
+      "label": "Server configuration to usage response",
+      "notes": "Runtime Pick fails to filter secrets at packages/domain/service.ts:1078; parent source validated.",
+      "receiptRefs": []
+    },
+    {
+      "disposition": "reported",
+      "id": "smtp-transport",
+      "label": "Production email TLS",
+      "notes": "Missing mandatory STARTTLS at apps/api/auth.ts:10-16 under supported secure=false configuration.",
+      "receiptRefs": []
+    },
+    {
+      "disposition": "no_issue_found",
+      "id": "oauth-grants",
+      "label": "OAuth authorization and live grants",
+      "notes": "Focused review established signed consent, S256 PKCE, redirect/client/code binding, audience/scope checks, live grants and hardened public-only CIMD fetch. No separate bypass identified.",
+      "receiptRefs": []
+    },
+    {
+      "disposition": "no_issue_found",
+      "id": "tenant-history",
+      "label": "Tenant isolation, history, conflicts, imports and deletion",
+      "notes": "Owner filters and live grants in packages/domain/service.ts apply to historical/direct/search paths; parameterized queries; owner locks serialize quota-bearing writes. Import validates graph and remaps attribution/IDs; DB constraints and immutable triggers enforce project relationships.",
+      "receiptRefs": []
+    },
+    {
+      "disposition": "no_issue_found",
+      "id": "browser-rendering",
+      "label": "Browser rendering and origin boundary",
+      "notes": "React text rendering, HTTP/HTTPS-only anchors, CSP and exact Host/Origin guards. No raw HTML execution sink.",
+      "receiptRefs": []
+    },
+    {
+      "disposition": "needs_follow_up",
+      "id": "recovery",
+      "label": "Operational recovery boundary",
+      "notes": "scripts/reconcile-recovery.mjs revokes all restored sessions/grants and applies deletions. Actual independent ledger currency, isolated ingress and deployed backup encryption remain operator prerequisites.",
+      "receiptRefs": []
+    }
+  ]
+}

@@ -1,0 +1,270 @@
+{
+  "documentType": "codex-security.findings",
+  "findings": [
+    {
+      "attackPath": {
+        "dataflow": {
+          "outcome": "A normal account receives server credentials.",
+          "sink": "GET /api/usage JSON response",
+          "source": "Server configuration",
+          "summary": "readConfig complete object -> buildServer -> CoveService public parameter property -> usage limits -> authenticated JSON response"
+        },
+        "impact": {
+          "level": "high",
+          "why": "Authentication and deployment secrets leave the server boundary."
+        },
+        "likelihood": {
+          "level": "high",
+          "why": "The Account screen requests the endpoint during normal use."
+        },
+        "reachability": {
+          "attacker": "ordinary verified account",
+          "entrypoint": "GET /api/usage",
+          "outcome": "credential disclosure",
+          "summary": "Any verified human account can call the route. Email verification and ownership protect user data but do not authorize server secrets."
+        },
+        "summary": "A self-registered user verifies email, signs in, and opens Account or GET /api/usage; the response exposes server-only configuration."
+      },
+      "codeEvidence": [
+        {
+          "code": "  app.get(\"/api/usage\", async (req) => service.usage(await actor(req)));",
+          "explanation": "A verified account is sufficient to invoke usage; there is no operator-only boundary.",
+          "id": "usage-route",
+          "label": "Verified-account usage route",
+          "path": "apps/api/server.ts",
+          "role": "entrypoint",
+          "startLine": 376
+        },
+        {
+          "code": "  const service = new CoveService(pool, c);",
+          "explanation": "The caller supplies the complete parsed server configuration, which includes credential fields.",
+          "id": "full-config",
+          "label": "Complete runtime configuration enters domain service",
+          "path": "apps/api/server.ts",
+          "role": "propagation",
+          "startLine": 21
+        },
+        {
+          "code": "    public limits: Pick<\n      Config,\n      \"MAX_PROJECTS\" | \"MAX_REVISIONS\" | \"MAX_STORAGE_BYTES\"\n    >,\n  ) {}",
+          "endLine": 176,
+          "explanation": "TypeScript Pick constrains the declared type but the parameter property retains the original object at runtime.",
+          "id": "type-only",
+          "label": "Type-only narrowing preserves extra runtime keys",
+          "path": "packages/domain/service.ts",
+          "role": "root_control",
+          "startLine": 172
+        },
+        {
+          "code": "        limits: this.limits,",
+          "explanation": "Fastify serializes the original configuration as the limits field; no response schema removes credential keys.",
+          "id": "usage-sink",
+          "label": "Unfiltered object returned in account response",
+          "path": "packages/domain/service.ts",
+          "role": "sink",
+          "startLine": 1078
+        }
+      ],
+      "confidence": {
+        "level": "high",
+        "rationale": "The complete configuration is passed unchanged, stored by a TypeScript parameter property, and serialized without a runtime allowlist."
+      },
+      "findingId": "csf_3b7b3387f25548192d08baa6",
+      "fingerprints": {
+        "algorithm": "codex-security/v1",
+        "primary": "codex-security/v1:sha256:26e18a77caa67e96e65f34158312a102edf9312e8a373a524e10039596a7289d"
+      },
+      "identity": {
+        "anchor": "usage-summary-exposes-server-credentials-to-account-owners"
+      },
+      "locations": [
+        {
+          "path": "packages/domain/service.ts",
+          "role": "root_control",
+          "startLine": 1078
+        },
+        {
+          "path": "apps/api/server.ts",
+          "role": "source",
+          "startLine": 21
+        },
+        {
+          "path": "apps/api/server.ts",
+          "role": "entrypoint",
+          "startLine": 376
+        },
+        {
+          "endLine": 176,
+          "path": "packages/domain/service.ts",
+          "role": "evidence",
+          "startLine": 172
+        }
+      ],
+      "occurrenceId": "occ_4c61b1bf08a98abdfeaf845a",
+      "provenance": {
+        "candidateId": "cove-configuration-disclosure",
+        "originalCandidates": [
+          {
+            "evidence": [
+              "apps/api/server.ts constructs CoveService(pool,c)",
+              "packages/domain/service.ts constructor stores public limits with TypeScript Pick",
+              "usage() returns limits:this.limits"
+            ],
+            "title": "Usage endpoint returns full server configuration"
+          }
+        ],
+        "source": "local_plugin"
+      },
+      "remediation": "Construct an explicit runtime allowlist of the three public numeric limits and return only those values. Add a regression test with sentinel extra configuration fields; rotate any credentials if the vulnerable endpoint was exposed to untrusted users.",
+      "remediationTests": [
+        "Assert service limits and the GET /api/usage limits object contain exactly MAX_PROJECTS, MAX_REVISIONS, MAX_STORAGE_BYTES even when constructor input has sentinel credential fields."
+      ],
+      "rootCause": {
+        "evidenceRefs": [
+          "usage-route",
+          "full-config",
+          "type-only",
+          "usage-sink"
+        ],
+        "summary": "The server passes its entire configuration to CoveService. A TypeScript Pick is used only as a static annotation, so the parameter property retains every runtime key. usage returns that same object to an ordinary verified account, crossing the server-secret boundary."
+      },
+      "ruleId": "information-disclosure.server-configuration",
+      "severity": {
+        "level": "high",
+        "rationale": "High impact credential disclosure is directly reachable by self-registered verified accounts. Further misuse depends on credential scope and network reachability."
+      },
+      "summary": "Any verified account can request the usage summary and receive the full runtime configuration, including the authentication secret, database URL, and configured SMTP credentials.",
+      "taxonomy": {
+        "category": "information-disclosure",
+        "cwe": [
+          "CWE-200"
+        ]
+      },
+      "title": "Usage summary exposes server credentials to account owners",
+      "validation": {
+        "limitations": [
+          "No production service is deployed; severity describes the supplied production code path.",
+          "Downstream database or SMTP compromise was not exercised."
+        ],
+        "method": "independent focused source investigation and parent static validation",
+        "summary": "The parent independently read configuration construction, constructor storage, verified-account route and JSON sink. These establish credential disclosure without reading or reproducing credential values."
+      }
+    },
+    {
+      "attackPath": {
+        "dataflow": {
+          "outcome": "Credential or password-reset link interception",
+          "sink": "Unencrypted SMTP network",
+          "source": "Server-held SMTP credential and recovery message",
+          "summary": "Production SMTP configuration -> Nodemailer optional STARTTLS -> SMTP credentials and account links"
+        },
+        "impact": {
+          "level": "high",
+          "why": "Recovery links can authorize account access."
+        },
+        "likelihood": {
+          "level": "medium",
+          "why": "Requires active network interference with a supported deployment option."
+        },
+        "reachability": {
+          "attacker": "network-path attacker",
+          "entrypoint": "SMTP EHLO negotiation",
+          "outcome": "plaintext sensitive message delivery",
+          "summary": "Conditional on SMTP_SECURE=false and an active network attacker; no unprivileged application user alone can trigger interception."
+        },
+        "summary": "An attacker on the configured SMTP network path removes STARTTLS from the server response; secure:false without requireTLS permits authentication and reset mail over the unencrypted connection."
+      },
+      "codeEvidence": [
+        {
+          "code": "    host: c.SMTP_HOST,\n    port: c.SMTP_PORT,\n    secure: c.SMTP_SECURE === \"true\",\n    ...(c.SMTP_USER\n      ? { auth: { user: c.SMTP_USER, pass: c.SMTP_PASSWORD } }\n      : {}),\n  });",
+          "endLine": 16,
+          "explanation": "When secure=false, no requireTLS option forces successful STARTTLS before authentication or message delivery.",
+          "id": "smtp-options",
+          "label": "SMTP transport permits optional TLS",
+          "path": "apps/api/auth.ts",
+          "role": "root_control",
+          "startLine": 10
+        },
+        {
+          "code": "  const send = async (to: string, subject: string, url: string) => {\n    await mail.sendMail({\n      from: c.SMTP_FROM,\n      to,\n      subject,\n      text: `${subject}\\n\\n${url}\\n\\nIf you did not request this, ignore this email.`,\n    });",
+          "endLine": 23,
+          "explanation": "The same transport sends account verification and password recovery URLs.",
+          "id": "smtp-message",
+          "label": "Authentication email contains sensitive links",
+          "path": "apps/api/auth.ts",
+          "role": "sink",
+          "startLine": 17
+        }
+      ],
+      "confidence": {
+        "level": "high",
+        "rationale": "Application transport omits requireTLS; the installed Nodemailer implementation only upgrades when advertised or required."
+      },
+      "findingId": "csf_4be0d66d39eea700b16ae562",
+      "fingerprints": {
+        "algorithm": "codex-security/v1",
+        "primary": "codex-security/v1:sha256:33e8438629233c3c650a465cb37d10b1bf3b692d6eb4416c4a7ab3f3100aad90"
+      },
+      "identity": {
+        "anchor": "production-smtp-can-send-credentials-and-recovery-links-without-tls"
+      },
+      "locations": [
+        {
+          "endLine": 16,
+          "path": "apps/api/auth.ts",
+          "role": "root_control",
+          "startLine": 10
+        },
+        {
+          "path": "apps/api/config.ts",
+          "role": "evidence",
+          "startLine": 14
+        }
+      ],
+      "occurrenceId": "occ_4e2c693ea0b95497eccd8fce",
+      "provenance": {
+        "candidateId": "smtp-starttls-downgrade",
+        "originalCandidates": [
+          {
+            "evidence": "apps/api/auth.ts:10-16 secure false default without requireTLS; nodemailer connect then login when server omits STARTTLS",
+            "title": "Production SMTP allows opportunistic STARTTLS downgrade"
+          }
+        ],
+        "source": "local_plugin"
+      },
+      "remediation": "Require successful TLS in production: implicit TLS with secure=true or requireTLS=true when secure=false. Keep local Mailpit plaintext limited to development. Add a transport test proving a non-STARTTLS server never receives AUTH or message data in production.",
+      "remediationTests": [
+        "Assert production transport requires STARTTLS when implicit TLS is disabled.",
+        "Use a local controlled SMTP fixture without STARTTLS and assert rejection before authentication."
+      ],
+      "rootCause": {
+        "evidenceRefs": [
+          "smtp-options",
+          "smtp-message"
+        ],
+        "summary": "Production accepts SMTP_SECURE=false, intended for STARTTLS. makeAuth passes secure:false and credentials to Nodemailer without requireTLS. Installed Nodemailer upgrades only when STARTTLS is advertised or requireTLS is set, so omission of that capability allows plaintext authentication and messages."
+      },
+      "ruleId": "cleartext-transmission.smtp-starttls",
+      "severity": {
+        "level": "medium",
+        "rationale": "High-impact credential or account recovery exposure requires an active attacker on the API-to-SMTP network path and the supported STARTTLS configuration."
+      },
+      "summary": "The supported SMTP_SECURE=false production configuration permits opportunistic STARTTLS. A network attacker who suppresses STARTTLS advertisement can receive SMTP authentication and verification or recovery messages over plaintext.",
+      "taxonomy": {
+        "category": "cleartext-transmission",
+        "cwe": [
+          "CWE-319"
+        ]
+      },
+      "title": "Production SMTP can send credentials and recovery links without TLS",
+      "validation": {
+        "limitations": [
+          "Requires a production STARTTLS deployment and active network position; implicit TLS configuration is unaffected."
+        ],
+        "method": "Independent baseline source investigation and parent source validation",
+        "summary": "Parent read transport options, production validation and Nodemailer smtp-connection STARTTLS condition at installed dist/esm/smtp-connection/index.js:1227-1230. No mail interception or real credential testing occurred."
+      }
+    }
+  ],
+  "scanId": "069c134c-4783-469e-a469-4b4e1e118bad",
+  "schemaVersion": "1.0"
+}

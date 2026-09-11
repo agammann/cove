@@ -1,0 +1,8 @@
+{$COVE_DOMAIN} {
+  encode zstd gzip
+  reverse_proxy api:4317
+  header {
+    Strict-Transport-Security "max-age=31536000; includeSubDomains"
+    Referrer-Policy "no-referrer"
+  }
+}

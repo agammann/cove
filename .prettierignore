@@ -1,0 +1,8 @@
+node_modules
+dist
+.pnpm-store
+.cache
+test-results
+backups
+packages/database/migrations
+pnpm-lock.yaml

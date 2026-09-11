@@ -1,0 +1,99 @@
+{
+  "documentType": "codex-security.scan-manifest",
+  "scan": {
+    "artifacts": [
+      {
+        "mediaType": "application/json",
+        "path": "findings.json",
+        "sha256": "4d4dd3c143c7a39359e97b1d6ecb7051f847b48e8da49efde3bcff09732c652d"
+      },
+      {
+        "mediaType": "application/json",
+        "path": "coverage.json",
+        "sha256": "a2d3117b367cd86c664e57dda40953c540d16967cdc12f277c319e2e74307446"
+      }
+    ],
+    "completedAt": "2026-09-11T01:40:22.827805Z",
+    "coverageRef": "coverage.json",
+    "findingsRef": "findings.json",
+    "id": "069c134c-4783-469e-a469-4b4e1e118bad",
+    "preservedSources": {
+      "checkpoints/1e7ea60b5fe729bebe5d3b14d9b0834c3fb654507fe800e37c33331d5c7fb903.json": "ddd42f9130b998f3ce6eb4dee817bfd55feed2a966b5cb0f2d72b17d674c4dd6",
+      "checkpoints/2731a19dcee436dc0ac1331e25c9480cbf1713102d27d7641a0aa6c41484eade.json": "0e303d41066774c44c6b1ef3195628a84a47753bc5f3b560fb06866678a95795",
+      "checkpoints/5cb11c6409e1d8f2ff3de7a32a60bd3f0081b629e04cd1ddc6e3ac9a732fa165.json": "0147826c01e82c486f6636d6a9fce0849d8dee99054b51a9539090ef8e497b66",
+      "checkpoints/83179374a4d75ba7eba22fd8ed180525388f29023cc9ce9530673fb5c99825fa.json": "dd0ccafb33d817bab88e7fb3d479e5d0a579666039e9f342a55ee1e26f07ddeb",
+      "checkpoints/d8a6e2a80d5955fd6ba3cac29848f7405e9b0202f1639c991d7c5a526405d696.json": "d8a6e2a80d5955fd6ba3cac29848f7405e9b0202f1639c991d7c5a526405d696"
+    },
+    "producer": {
+      "name": "codex-security-plugin",
+      "version": "0.1.24"
+    },
+    "scope": {
+      "excludePaths": [],
+      "includePaths": [
+        "."
+      ],
+      "limitations": [
+        "Generated metadata and dependency tree not exhaustively audited.",
+        "Architecture worker final response unavailable; interim facts independently reconciled by parent."
+      ],
+      "runtimeStatus": "Local application tests separate from audit; no deployed service",
+      "summary": "Standard source audit of Cove before remediation and first public source upload",
+      "validationMode": "static"
+    },
+    "sealedAt": "2026-09-11T01:40:22.827805Z",
+    "startedAt": "2026-09-09T05:30:18.373032Z",
+    "status": "completed",
+    "target": {
+      "displayName": "cove",
+      "kind": "directory_snapshot",
+      "snapshotDigest": "codex-security-snapshot/v1:sha256:3f19c26a56b58dbd97d165f446c59317b968933affd31e2eb8161367bb26b33e",
+      "targetId": "target_sha256_20260bd33b0404fcf32b67508f1f68d7b474aae522d934328897bb34ddf05f64"
+    },
+    "threatModel": {
+      "assets": [
+        "Private project documents, immutable revisions, handoffs and source references (packages/database/schema.ts; packages/domain/service.ts).",
+        "Human session identities, password recovery links, OAuth credentials, grants and revocation state (apps/api/auth.ts; packages/mcp/server.ts).",
+        "Server configuration secrets consumed by database and SMTP and Better Auth, including the credentials exposed by the usage finding (apps/api/config.ts:10-17; apps/api/server.ts:19-21; packages/domain/service.ts:1078).",
+        "Persistent database and independently preserved deletion/revocation ledger (compose.production.yaml; scripts/reconcile-recovery.mjs)."
+      ],
+      "assumptions": [
+        "The supplied source has not been publicly deployed. Source review and local tests do not verify a live assistant host or production environment.",
+        "Independent architecture review confirmed database location is not derived from Compose's db service: DATABASE_URL in .env.production independently selects the actual recipient. docs/operations.md requires operator agreement with Compose password and service; code does not enforce it.",
+        "Local .env is loaded by apps/api/main.ts if present; Docker excludes .env and .env.*. Production config enters via env_file .env.production; runtime is USER node, read-only API with tmpfs /tmp, no added capabilities (Dockerfile; .dockerignore; compose.production.yaml).",
+        "Production publishes proxy ports80/443 only; database volume is database:/var/lib/postgresql/data and API trusts proxy headers because no API host port is published. External exposure of that API would violate the documented topology.",
+        "BETTER_AUTH_SECRET reaches Better Auth, DATABASE_URL reaches pg, SMTP credentials reach the configured SMTP server. Literal secrets were not read for this audit.",
+        "Backup script writes gitignored backups/verification.dump; production encrypted off-host storage and ledger replication are explicitly external operational requirements. Ledger is only append-only by application convention, not a database tamper-proof record.",
+        "A revoked owner/client binding requires a fresh client registration; fixed-client reconnection remains a documented product limitation.",
+        "Independent baseline plus focused review completed. Architecture worker's interim resource observations were reconciled against parent-read consumers; the full worker result was unavailable at final assembly. Dependency internals were examined only to explain configured controls, not exhaustively audited."
+      ],
+      "attackerCapabilities": [
+        "Anonymous clients can send bounded HTTP requests and register OAuth public clients; self-registered verified accounts can own projects and request usage metadata.",
+        "Authorized assistants can read/write/create handoffs only within stored capabilities; they cannot expand grants or operate account lifecycle APIs.",
+        "Saved/imported content can contain malicious text or reference locations but conveys no execution or authorization power.",
+        "An active network adversary may alter plaintext SMTP negotiation in the supported STARTTLS configuration.",
+        "No attacker control of operator environment, deployment host, independent ledger or privileged scripts is assumed."
+      ],
+      "securityObjectives": [
+        "Keep every project/historical/direct/search operation within authenticated ownership and current connection grants.",
+        "Preserve historical snapshots and reject stale saves without overwrite; reauthorize idempotent responses.",
+        "Keep server credentials out of browser responses, logs, analytics and exports.",
+        "Require encrypted SMTP in production before credentials or account links are transmitted.",
+        "Never silently reactivate restored deleted accounts or revoked access; keep ingress blocked until the current deletion ledger is established.",
+        "Bound request/document/import/page/response sizes and preserve submitted data on limit errors."
+      ],
+      "summary": "Cove is a standalone context store for individuals. React browser routes and seven HTTP MCP tools call shared transactional PostgreSQL domain services. Better Auth manages verified email/password sessions, OAuth/PKCE and JWT validation. Local startup binds loopback; documented production uses a private Node API behind Caddy HTTPS (apps/api/main.ts:5-11; apps/api/server.ts:19-21; packages/mcp/server.ts:12-38; compose.production.yaml).",
+      "trustBoundaries": [
+        "Browser to Fastify: exact Host and Origin validation plus verified live session; browser mutations require the canonical Origin (apps/api/server.ts:67-74,217-239).",
+        "OAuth client to resource: provider validates signature, issuer, audience, expiry and cove scope; Cove requires subject/client claims and maps to live owner/client binding, then checks project capabilities on each operation (packages/mcp/server.ts:14-38; packages/domain/service.ts:209-255,721-745).",
+        "Ordinary account to operator configuration: usage metadata must expose quotas only; full Config is currently stored under the type-only Pick and returned, violating this boundary (apps/api/server.ts:21,376; packages/domain/service.ts:172-176,1078).",
+        "API to SMTP: configured host/port, credentials and verification/reset URL leave the service through Nodemailer. secure=false currently permits opportunistic TLS, violating mandatory transport protection under an active network attacker (apps/api/auth.ts:10-23).",
+        "Database writes: owner/project locks, parameterized SQL, version checks and idempotency reauthorization protect cross-account ownership and integrity; immutable triggers enforce historical update prohibition (packages/domain/service.ts:191-255; packages/database/migrations/0001_integrity.sql).",
+        "Imported JSON and saved text remain data: strict bounded schema, graph checks, new IDs, imported attribution and no grants; React renders text, reference anchors restrict schemes, source pointers are never fetched (packages/shared/context.ts; packages/domain/service.ts:909-1014; apps/web/src/Project.tsx).",
+        "OAuth CIMD network metadata is a separate dependency-owned HTTPS fetch boundary. Targeted review found public DNS validation, address pinning and redirects disabled through fetchClientMetadataResource (apps/api/auth.ts:5,78; installed @better-auth/cimd/dist/node.mjs).",
+        "Privileged operator recovery consumes a local ledger path and DATABASE_URL, deletes acknowledged records and revokes all restored sessions/grants. Actual ingress isolation and ledger currency are operator responsibilities (scripts/reconcile-recovery.mjs:1-54)."
+      ]
+    }
+  },
+  "schemaVersion": "1.0"
+}
