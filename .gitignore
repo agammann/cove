@@ -9,3 +9,7 @@ coverage/
 backups/
 .pnpm-store/
 .cache/
+.wrangler/
+.sites-runtime/
+.dev.vars*
+*.tgz

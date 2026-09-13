@@ -1,0 +1,11 @@
+{
+  "checkedAt": "2026-09-13T07:05:02.227Z",
+  "runtime": "local Cloudflare Worker and D1",
+  "signin": "synthetic dispatch headers only on local fixture",
+  "homepageDesktop": "passed",
+  "homepageMobile": "passed",
+  "projectEditSave": "passed",
+  "workspaceMobile": "passed",
+  "handoffCopy": "passed",
+  "accountDeletion": "passed"
+}

@@ -10,7 +10,9 @@
   "scripts": {
     "dev": "tsx watch apps/api/main.ts",
     "dev:web": "vite --config apps/web/vite.config.ts",
-    "build": "vite build --config apps/web/vite.config.ts && tsc -p tsconfig.server.json",
+    "build": "node scripts/build-hosted.mjs",
+    "build:local": "vite build --config apps/web/vite.config.ts && tsc -p tsconfig.server.json",
+    "test:sites": "vitest run tests/sites.test.ts",
     "start": "node dist/apps/api/main.js",
     "typecheck": "tsc --noEmit",
     "lint": "eslint .",
@@ -42,6 +44,7 @@
     "zod": "4.5.4"
   },
   "devDependencies": {
+    "@cloudflare/workers-types": "4.20260515.1",
     "@eslint/js": "10.0.1",
     "@playwright/test": "1.63.0",
     "@types/node": "26.5.0",
@@ -51,12 +54,14 @@
     "@types/react-dom": "19.2.7",
     "@vitejs/plugin-react": "6.1.1",
     "drizzle-kit": "0.31.10",
+    "esbuild": "0.25.12",
     "eslint": "10.10.0",
     "prettier": "3.9.6",
     "tsx": "4.23.13",
     "typescript": "6.0.3",
     "typescript-eslint": "8.70.0",
     "vite": "8.2.2",
-    "vitest": "4.1.11"
+    "vitest": "4.1.11",
+    "wrangler": "4.92.0"
   }
 }

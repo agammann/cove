@@ -9,7 +9,7 @@ import {
   useNavigate,
 } from "react-router-dom";
 import { Folder, Users, User, LogOut } from "lucide-react";
-import { AuthPage, Landing } from "./Auth.js";
+import { AuthPage } from "./Auth.js";
 import { Projects, NewProject } from "./Projects.js";
 import { Project, Handoff } from "./Project.js";
 import { Editor } from "./Editor.js";
@@ -17,6 +17,8 @@ import { Connections, Consent } from "./Connections.js";
 import { Account } from "./Account.js";
 import { useData, ErrorBox, Loading, post } from "./lib.js";
 import "./style.css";
+import "./identity.css";
+import { Brand, NewLanding } from "./Identity.js";
 function Shell() {
   const { data, error } = useData("/api/me");
   const nav = useNavigate();
@@ -27,7 +29,7 @@ function Shell() {
       </a>
       <aside className="sidebar">
         <Link to="/projects" className="brand">
-          Cove
+          <Brand />
         </Link>
         <nav aria-label="Workspace">
           <NavLink to="/projects">
@@ -56,6 +58,10 @@ function Shell() {
                 className="sidebar-signout"
                 onClick={async () => {
                   await post("/api/auth/sign-out");
+                  if (import.meta.env.VITE_COVE_SITES === "true") {
+                    window.location.assign("/signout-with-chatgpt?return_to=/");
+                    return;
+                  }
                   nav("/sign-in");
                 }}
               >
@@ -73,7 +79,7 @@ function Shell() {
   );
 }
 const router = createBrowserRouter([
-  { path: "/", element: <Landing /> },
+  { path: "/", element: <NewLanding /> },
   { path: "/sign-in", element: <AuthPage /> },
   { path: "/sign-up", element: <AuthPage mode="sign-up" /> },
   { path: "/recover", element: <AuthPage mode="recover" /> },

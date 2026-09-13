@@ -37,7 +37,7 @@ export function mcpHandler(auth: Auth, service: CoveService, origin: string) {
     { resource: `${origin}/mcp`, requiredScopes: ["cove"] },
   );
 }
-export function makeServer(service: CoveService, a: Actor) {
+export function makeServer(service: Pick<CoveService, 'listProjects' | 'context' | 'search' | 'update' | 'createHandoff' | 'handoff' | 'compare'>, a: Actor) {
   const server = new McpServer(
     { name: "cove", version: "0.1.0" },
     {
@@ -124,7 +124,7 @@ export function makeServer(service: CoveService, a: Actor) {
   );
   register(
     "cove_search",
-    "Search current project context with PostgreSQL full-text search within your read grants. Does not fetch sources.",
+    "Search current project context within your read grants. Does not fetch sources.",
     pageSchema.extend({ query: z.string().min(1).max(200) }),
     false,
     (v) => service.search(a, v.query, v.offset, v.limit),

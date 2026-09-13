@@ -146,15 +146,23 @@ export function Account() {
             }
           }}
         >
-          <label>
-            Current password
-            <input
-              name="password"
-              type="password"
-              autoComplete="current-password"
-              required
-            />
-          </label>
+          {import.meta.env.VITE_COVE_SITES !== "true" && (
+            <label>
+              Current password
+              <input
+                name="password"
+                type="password"
+                autoComplete="current-password"
+                required
+              />
+            </label>
+          )}
+          {import.meta.env.VITE_COVE_SITES === "true" && (
+            <p>
+              Sign in within the last five minutes before deleting. This deletes
+              your Cove data, not your ChatGPT account.
+            </p>
+          )}
           <label>
             Type DELETE MY ACCOUNT
             <input name="confirmation" required pattern="DELETE MY ACCOUNT" />

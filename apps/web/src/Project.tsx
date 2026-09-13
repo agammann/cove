@@ -150,6 +150,19 @@ export function Project({
             </div>
             <aside className="next-rail">
               <section>
+                <h2>Ready for your next conversation</h2>
+                <p>
+                  Save a handoff of this revision to carry the context with you.
+                </p>
+                <button
+                  className="rail-create"
+                  disabled={publishing}
+                  onClick={handoff}
+                >
+                  {publishing ? "Creating…" : "Create handoff"}
+                </button>
+              </section>
+              <section>
                 <h2>
                   <ArrowRightCircle />
                   Next action

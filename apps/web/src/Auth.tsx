@@ -1,7 +1,17 @@
 import { useState, type FormEvent } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { ErrorBox, post } from "./lib.js";
-export function AuthPage({
+import { SitesSignIn, Brand } from "./Identity.js";
+export function AuthPage(props: {
+  mode?: "sign-in" | "sign-up" | "recover" | "reset";
+}) {
+  return import.meta.env.VITE_COVE_SITES === "true" ? (
+    <SitesSignIn />
+  ) : (
+    <LocalAuthPage {...props} />
+  );
+}
+function LocalAuthPage({
   mode = "sign-in",
 }: {
   mode?: "sign-in" | "sign-up" | "recover" | "reset";
@@ -65,7 +75,7 @@ export function AuthPage({
   return (
     <main className="auth-page">
       <Link className="brand" to="/">
-        Cove
+        <Brand />
       </Link>
       <div className="auth-panel">
         <h1>{title}</h1>

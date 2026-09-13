@@ -7,6 +7,8 @@ export default ts.config(
       "node_modules/**",
       ".pnpm-store/**",
       ".cache/**",
+      ".sites-runtime/**",
+      ".wrangler/**",
       "playwright-report/**",
       "test-results/**",
     ],
@@ -21,6 +23,10 @@ export default ts.config(
         { argsIgnorePattern: "^_", varsIgnorePattern: "^_" },
       ],
     },
+  },
+  {
+    files: ["scripts/verify-sites-browser.mjs"],
+    languageOptions: { globals: { document: "readonly", innerWidth: "readonly" } },
   },
   {
     files: ["scripts/*.mjs"],

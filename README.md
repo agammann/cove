@@ -4,7 +4,7 @@
 
 Cove is a standalone project-context product for individuals who work across assistants. It stores the goals, constraints, decisions, notes, sources, progress, and next steps you explicitly submit. You can create a private handoff, copy it manually, or retrieve it through a separately authorized assistant.
 
-**Release status: tested local release candidate.** Read [release readiness](docs/release-readiness.md) before putting real customer data into an installation. Public source availability is not a deployed service or a claim of verified assistant host compatibility.
+**Sites edition:** Cove now includes a complete OpenAI Sites deployment with ChatGPT sign in, persistent D1 storage, private projects, revision history, handoffs, and scoped OAuth/MCP connections. See [Sites operations and verification](docs/sites.md). The original PostgreSQL distribution remains available below. The older [release readiness report](docs/release-readiness.md) describes that distribution and its historical verification, rather than the Sites adaptation.
 
 No model API key, subscription billing, private-conversation scraping, automatic source fetching, or external execution is involved. This is not a competition project. Cove was implemented independently; no Kody source, documentation, branding, or architecture was copied.
 
@@ -19,13 +19,13 @@ pnpm install --frozen-lockfile
 node scripts/setup-env.mjs
 docker compose up -d
 pnpm db:migrate
-pnpm build
+pnpm build:local
 pnpm start
 ```
 
 Open **http://localhost:4317**. Create an account with a password of at least 12 characters. In local development, verification and recovery mail arrives in **http://localhost:8025** (Mailpit); open the verification link there. Local accounts use the same password/session system as production. There is no authentication bypass or seeded administrator.
 
-Use `pnpm dev` for API watch mode after the first build. Rebuild the frontend with `pnpm build`, or run `pnpm dev:web` for the optional Vite frontend preview. OAuth authorization and email links always use the configured canonical origin; use port 4317 for the full acceptance workflow.
+Use `pnpm dev` for API watch mode after the first build. Rebuild the local distribution with `pnpm build:local`, or run `pnpm dev:web` for the optional Vite frontend preview. OAuth authorization and email links always use the configured canonical origin; use port 4317 for the full acceptance workflow. `pnpm build` builds the Sites edition instead.
 
 ## Use Cove
 
@@ -62,6 +62,7 @@ Integration tests create uniquely named disposable PostgreSQL databases and dele
 | Path | Responsibility |
 | --- | --- |
 | `apps/web` | React screens, forms, accessibility, conflict resolution |
+| `apps/sites` | Sites Worker, D1 storage, ChatGPT identity, OAuth and MCP |
 | `apps/api` | Same-origin Fastify API, Better Auth, mail, environment validation |
 | `packages/domain` | Shared project authorization and transactional operations |
 | `packages/database` | Drizzle schema, reviewed migrations, database connection |

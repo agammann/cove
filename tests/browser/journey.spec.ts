@@ -90,7 +90,7 @@ test("manual journey, OAuth consent and grants, conflicts, portability, recovery
   await page.screenshot({ path: "docs/workspace-mobile.png", fullPage: true });
   await page.setViewportSize({ width: 1536, height: 1024 });
   await page
-    .getByRole("button", { name: "Create handoff", exact: true })
+    .getByRole("button", { name: "Create handoff", exact: true }).first()
     .click();
   await expect(
     page.getByRole("heading", { name: "Ready to continue" }),
@@ -333,3 +333,4 @@ test("manual journey, OAuth consent and grants, conflicts, portability, recovery
     ),
   );
 });
+

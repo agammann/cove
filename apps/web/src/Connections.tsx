@@ -25,9 +25,9 @@ export function Connections() {
           Add this remote MCP address in your assistant’s connection settings,
           then complete the sign-in and project-permission screen.
         </p>
-        <code className="endpoint">{window.location.origin}/mcp</code>
+        <code className="endpoint">{window.location.origin}{import.meta.env.VITE_COVE_SITES === "true" ? "/api/mcp" : "/mcp"}</code>
         <CopyButton
-          text={`${window.location.origin}/mcp`}
+          text={`${window.location.origin}${import.meta.env.VITE_COVE_SITES === "true" ? "/api/mcp" : "/mcp"}`}
           label="Copy server address"
         />
         <p className="muted">

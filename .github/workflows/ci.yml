@@ -32,7 +32,7 @@ jobs:
       - run: pnpm lint
       - run: pnpm typecheck
       - run: pnpm test
-      - run: pnpm build
+      - run: pnpm build:local
       - run: pnpm exec playwright install --with-deps chromium
       - name: Run manual browser journey
         run: |
@@ -42,3 +42,4 @@ jobs:
       - run: pnpm scan:secrets
       - run: pnpm audit --audit-level=moderate
       - run: docker build -t cove:ci .
+      - run: pnpm build
