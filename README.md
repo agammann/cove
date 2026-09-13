@@ -2,6 +2,8 @@
 
 **Your work, wherever your agents go.** Switch assistants. Keep your project moving.
 
+**Visit [Cove on OpenAI Sites](https://cove-context.alx21.chatgpt.site).** The website is public. Sign in with ChatGPT to create a private workspace.
+
 Cove is a standalone project-context product for individuals who work across assistants. It stores the goals, constraints, decisions, notes, sources, progress, and next steps you explicitly submit. You can create a private handoff, copy it manually, or retrieve it through a separately authorized assistant.
 
 **Sites edition:** Cove now includes a complete OpenAI Sites deployment with ChatGPT sign in, persistent D1 storage, private projects, revision history, handoffs, and scoped OAuth/MCP connections. See [Sites operations and verification](docs/sites.md). The original PostgreSQL distribution remains available below. The older [release readiness report](docs/release-readiness.md) describes that distribution and its historical verification, rather than the Sites adaptation.

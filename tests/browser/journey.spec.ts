@@ -313,7 +313,7 @@ test("manual journey, OAuth consent and grants, conflicts, portability, recovery
     .getByRole("button", { name: "Delete account permanently" })
     .click();
   await expect(
-    page.getByRole("heading", { name: /Switch assistants/ }),
+    page.getByRole("heading", { name: "Keep the context. Find your flow." }),
   ).toBeVisible();
   expect((await page.request.get(`${origin}/api/me`)).status()).toBe(401);
   await writeFile(

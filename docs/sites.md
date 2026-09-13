@@ -1,5 +1,9 @@
 # Cove on OpenAI Sites
 
+**Live:** https://cove-context.alx21.chatgpt.site. Public publication succeeded on September 13, 2026. The live browser journey verified ChatGPT sign in, project creation, a saved context revision, handoff creation and copying, persistence after a full page reload, and archiving the synthetic verification project. Anonymous requests to private APIs were denied, including an attempted spoof of the dispatch identity headers. The live MCP address is `https://cove-context.alx21.chatgpt.site/api/mcp`; its authorization challenge and resource metadata were verified. A real external assistant host has not yet been connected.
+
+The remote D1 parser rejected a `CASE ... END` expression inside the initially unapplied integrity trigger migration. Equivalent `SELECT RAISE ... WHERE` statements retained the safeguards and deployed successfully. The previously applied base and auth migrations were unchanged. Direct workspace links now use an explicit SPA fallback. The `/api/mcp` address avoids the platform's reserved `/mcp` route.
+
 The Sites edition runs the application, API, authentication sessions, OAuth provider, MCP endpoint, and persistent database on Sites. It requires no separately hosted PostgreSQL server, SMTP service, or model API key. Public website access does not make projects public. Visitors sign in with ChatGPT before opening their own workspace.
 
 ## Architecture
@@ -26,7 +30,7 @@ Lint, TypeScript checking, the production Sites build, five Sites tests, four sh
 
 The browser journey also passed against actual local workerd and D1: desktop and mobile rendering, project creation, context editing and saving, concise and full handoffs, and synthetic account deletion. See `sites-browser-verification.json` and `design/` screenshots. The local sign in fixture uses synthetic dispatch headers; it does not establish live ChatGPT sign in success.
 
-The eight original PostgreSQL integration tests could not run during this verification because the database on port 55439 was stopped. Historical PostgreSQL and container results remain in their original reports. They are not new verification of this edition.
+The eight original PostgreSQL integration tests could not run on the local machine because the database on port 55439 was stopped. They subsequently passed in GitHub Actions alongside the 11 other tests. That run reached the final homepage assertion in the browser journey, where it still expected the old headline. The assertion was updated to the redesigned heading. Historical container results remain in their original reports; consult the latest Actions run for the current complete workflow result.
 
 ## Operation
 
