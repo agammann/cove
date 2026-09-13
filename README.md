@@ -25,14 +25,14 @@ pnpm build:local
 pnpm start
 ```
 
-Open **http://localhost:4317**. Create an account with a password of at least 12 characters. In local development, verification and recovery mail arrives in **http://localhost:8025** (Mailpit); open the verification link there. Local accounts use the same password/session system as production. There is no authentication bypass or seeded administrator.
+After starting the local server, open `http://localhost:4317` on that computer. Create an account with a password of at least 12 characters. In local development, verification and recovery mail arrives in `http://localhost:8025` (Mailpit); open the verification link there. These loopback addresses are local development examples. The hosted Sites edition uses ChatGPT sign in. There is no authentication bypass or seeded administrator.
 
 Use `pnpm dev` for API watch mode after the first build. Rebuild the local distribution with `pnpm build:local`, or run `pnpm dev:web` for the optional Vite frontend preview. OAuth authorization and email links always use the configured canonical origin; use port 4317 for the full acceptance workflow. `pnpm build` builds the Sites edition instead.
 
 ## Use Cove
 
 1. Create a private project and record its goal, current state, and next action.
-2. Keep working manually, or add `http://localhost:4317/mcp` in a compatible assistant host and approve the selected projects in Cove.
+2. Keep working manually, or add `https://cove-context.alx21.chatgpt.site/api/mcp` in a compatible assistant host and approve the selected projects in Cove. For a locally running PostgreSQL installation, use `http://localhost:4317/mcp` instead.
 3. Save context. Every update specifies its base revision. Conflicting work is rejected and the browser keeps its open draft.
 4. Create a handoff. It pins the current saved revision, not an unsaved draft.
 5. Copy the concise or full handoff, or have another authorized assistant retrieve it.

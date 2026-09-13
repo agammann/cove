@@ -1,8 +1,8 @@
 # MCP reference and assistant use
 
-Remote endpoint: `https://YOUR_APPROVED_DOMAIN/mcp` in production, `http://localhost:4317/mcp` for a local host that can reach this machine. Cove uses official TypeScript SDK 2.0.0. Each request gets its own server instance. The SDK handles the 2026-07-28 stateless profile and the 2025 stateless Streamable HTTP compatibility path. No SSE session store or shared per-client server object is used. GET/DELETE session operations return 405.
+Hosted Sites endpoint: `https://cove-context.alx21.chatgpt.site/api/mcp`. Open [Cove](https://cove-context.alx21.chatgpt.site) to sign in and manage project grants. The original PostgreSQL distribution uses `/mcp` on its configured origin, or `http://localhost:4317/mcp` for a local host that can reach that computer. See [Sites operations](sites.md) for the hosted edition's boundaries. Cove uses official TypeScript SDK 2.0.0. Each request gets its own server instance. The SDK handles the 2026-07-28 stateless profile and the 2025 stateless Streamable HTTP compatibility path. No SSE session store or shared per-client server object is used. GET/DELETE session operations return 405.
 
-Protected-resource discovery is available at `/.well-known/oauth-protected-resource/mcp`, and authorization-server metadata is provided by Better Auth. Always discover metadata rather than guessing token endpoints. PKCE, resource audience, expiry, and project grants are required. No personal access tokens or demo bearer keys are accepted.
+Hosted protected resource discovery is available at [Cove's resource metadata](https://cove-context.alx21.chatgpt.site/.well-known/oauth-protected-resource/api/mcp). The original PostgreSQL distribution uses `/.well-known/oauth-protected-resource/mcp` on its configured origin. Authorization server metadata is provided by Better Auth. Always discover metadata rather than guessing token endpoints. PKCE, resource audience, expiry, and project grants are required. No personal access tokens or demo bearer keys are accepted.
 
 | Tool | Inputs | Result |
 | --- | --- | --- |
@@ -39,6 +39,6 @@ Retrieve Cove handoff HANDOFF_ID for project PROJECT_ID. Keep its original snaps
 | Official TypeScript SDK 2.0.0, two independent OAuth clients | Loopback HTTP, native callbacks, S256 PKCE, resource audience, separate grants | Executed in integration tests; see verification report |
 | Cove browser/manual workflow | Same-origin UI, private copy formats | Executed by Playwright; see browser report |
 | Codex as an actual assistant host | Remote MCP URL, OAuth sign-in, save/continue prompts | Pending live host interaction; SDK tests are not a host test |
-| ChatGPT as an actual assistant host | Reachable HTTPS remote MCP endpoint and account's available connection flow | Pending approved deployment and live host interaction |
+| ChatGPT as an actual assistant host | Reachable HTTPS remote MCP endpoint and account's available connection flow | Public deployment is available; live assistant host interaction remains unverified |
 
 Checked official instructions: [Codex MCP](https://learn.chatgpt.com/docs/extend/mcp?surface=cli) and [ChatGPT connection testing](https://developers.openai.com/plugins/deploy/connect-chatgpt). Exact host UI and availability can vary by account. No host has been silently configured and no public tunnel has been opened. Record client/version, date, endpoint, negotiated protocol, configuration, grants, and actual saved IDs when verifying a host. Do not call provider support verified based only on registration or discovery.
