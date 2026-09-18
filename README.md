@@ -1,91 +1,62 @@
 # Cove
 
-**Your work, wherever your agents go.** Switch assistants. Keep your project moving.
+**Your work, wherever your agents go.**
 
-**Visit [Cove on OpenAI Sites](https://cove-context.alx21.chatgpt.site).** The website is public. Sign in with ChatGPT to create a private workspace.
+Cove keeps your project's goals, decisions, sources, progress, and next steps in one private workspace. Save your context, create a handoff, and continue with another assistant without rebuilding the story from scratch.
 
-Cove is a standalone project-context product for individuals who work across assistants. It stores the goals, constraints, decisions, notes, sources, progress, and next steps you explicitly submit. You can create a private handoff, copy it manually, or retrieve it through a separately authorized assistant.
+**[Open Cove](https://cove-context.alx21.chatgpt.site)** · **[Getting started](docs/getting-started.md)** · **[Documentation](docs/README.md)**
 
-**Sites edition:** Cove now includes a complete OpenAI Sites deployment with ChatGPT sign in, persistent D1 storage, private projects, revision history, handoffs, and scoped OAuth/MCP connections. See [Sites operations and verification](docs/sites.md). The original PostgreSQL distribution remains available below. The older [release readiness report](docs/release-readiness.md) describes that distribution and its historical verification, rather than the Sites adaptation.
+## Start with the website
 
-No model API key, subscription billing, private-conversation scraping, automatic source fetching, or external execution is involved. This is not a competition project. Cove was implemented independently; no Kody source, documentation, branding, or architecture was copied.
+1. Open Cove and sign in with ChatGPT.
+2. Choose **New project** and give your project a name.
+3. Record your goal, current state, and next steps, then choose **Save context**.
+4. Choose **Create handoff** and copy the concise or full version into your next assistant conversation.
 
-## Run locally
+The public website runs the complete app on OpenAI Sites with persistent storage. Your projects require sign in and remain private to your account and the assistant connections you authorize. You do not need to install software or supply a model API key.
 
-Prerequisites: Node.js 24, pnpm 11.19.0, Docker with Compose, and Git. Ports 4317, 55439, 1025, and 8025 must be free. The database uses a dedicated named volume; the setup never resets it.
+![Cove workspace with a saved research project and synthetic example content](docs/design/workspace-desktop.png)
 
-```sh
-git clone https://github.com/agammann/cove.git
-cd cove
-pnpm install --frozen-lockfile
-node scripts/setup-env.mjs
-docker compose up -d
-pnpm db:migrate
-pnpm build:local
-pnpm start
-```
+## What you can do
 
-After starting the local server, open `http://localhost:4317` on that computer. Create an account with a password of at least 12 characters. In local development, verification and recovery mail arrives in `http://localhost:8025` (Mailpit); open the verification link there. These loopback addresses are local development examples. The hosted Sites edition uses ChatGPT sign in. There is no authentication bypass or seeded administrator.
+* Keep structured context with revision history and comparisons.
+* Create handoffs pinned to a saved revision, with a warning when newer context exists.
+* Copy a handoff manually or grant an assistant access to selected projects through MCP.
+* Export projects as JSON or Markdown and import a Cove JSON export into a new project.
+* Review activity, revoke assistant access, archive projects, or delete your data.
 
-Use `pnpm dev` for API watch mode after the first build. Rebuild the local distribution with `pnpm build:local`, or run `pnpm dev:web` for the optional Vite frontend preview. OAuth authorization and email links always use the configured canonical origin; use port 4317 for the full acceptance workflow. `pnpm build` builds the Sites edition instead.
+Cove stores what you submit. It does not automatically read your assistant conversations or fetch the contents of source links. Copied text remains outside Cove's control.
 
-## Use Cove
+## Choose your path
 
-1. Create a private project and record its goal, current state, and next action.
-2. Keep working manually, or add `https://cove-context.alx21.chatgpt.site/api/mcp` in a compatible assistant host and approve the selected projects in Cove. For a locally running PostgreSQL installation, use `http://localhost:4317/mcp` instead.
-3. Save context. Every update specifies its base revision. Conflicting work is rejected and the browser keeps its open draft.
-4. Create a handoff. It pins the current saved revision, not an unsaved draft.
-5. Copy the concise or full handoff, or have another authorized assistant retrieve it.
-6. Inspect newer changes before continuing. Save the next update and review its author in Activity.
+| I want to… | Start here |
+| --- | --- |
+| Use the public app and create my first handoff | [Getting started](docs/getting-started.md) |
+| Connect an assistant | [MCP tools, prompts, and compatibility](docs/mcp.md) |
+| Run or develop Cove on my computer | [Local development and testing](docs/development.md) |
+| Maintain the hosted Sites edition | [Sites architecture and operations](docs/sites.md) |
+| Operate my own PostgreSQL installation | [PostgreSQL operations](docs/operations.md) |
+| Understand privacy or move my data | [Privacy](docs/privacy.md) and [export/import](docs/portability.md) |
 
-The connection screen provides an exact save prompt. Each handoff provides a project-specific continue prompt. See [prompts and MCP tools](docs/mcp.md).
+The hosted MCP address is `https://cove-context.alx21.chatgpt.site/api/mcp`. Live ChatGPT and Codex assistant connections remain unverified; the browser workflow and official SDK integration tests have separate verification records. Manual handoff copying works without an assistant connection. See the [compatibility matrix](docs/mcp.md#host-compatibility-matrix).
 
-## Verification commands
+## For developers
 
-```sh
-pnpm lint
-pnpm typecheck
-pnpm test
-pnpm build
-pnpm exec playwright install chromium
-# Keep Cove running on port 4317 for the following test.
-pnpm test:browser
-node scripts/backup-verify.mjs
-node scripts/verify-container.mjs
-pnpm scan:secrets
-pnpm audit
-docker build -t cove:0.1.0 .
-```
+The repository contains two distributions sharing the React frontend. The hosted edition uses a Worker, D1, and ChatGPT sign in. The original local distribution uses Fastify, PostgreSQL, and email/password accounts. Their accounts and data are separate.
 
-Integration tests create uniquely named disposable PostgreSQL databases and delete only those databases afterward. Browser tests create clearly labeled test accounts on the local instance, use Mailpit, and exercise account deletion. Failed browser tests may leave their synthetic account for debugging. The recovery test restarts **only this Compose project's database container**; do not run it during active local work.
-
-## Repository map
+Local prerequisites are Node.js 24, pnpm 11.19.0, Git, and Docker with Compose. Follow the [setup guide](docs/development.md) for complete commands, email verification, testing, and troubleshooting. **`pnpm build` builds Sites; `pnpm build:local` builds the local server.**
 
 | Path | Responsibility |
 | --- | --- |
-| `apps/web` | React screens, forms, accessibility, conflict resolution |
-| `apps/sites` | Sites Worker, D1 storage, ChatGPT identity, OAuth and MCP |
-| `apps/api` | Same-origin Fastify API, Better Auth, mail, environment validation |
-| `packages/domain` | Shared project authorization and transactional operations |
-| `packages/database` | Drizzle schema, reviewed migrations, database connection |
-| `packages/mcp` | Official SDK tools and remote transport |
-| `packages/shared` | Bounded Zod documents, comparisons, deterministic handoff formatting |
-| `tests` | Domain, PostgreSQL, OAuth/SDK and Playwright checks |
-| `scripts` | Environment setup, scanning, backup/recovery verification |
+| `apps/web` | Shared React frontend |
+| `apps/sites` | Hosted Worker, D1 operations, authentication, OAuth, and MCP |
+| `apps/api` | Local Fastify API and email authentication |
+| `packages/database` and `packages/domain` | PostgreSQL schema, migrations, and transactional operations |
+| `packages/mcp` and `packages/shared` | MCP tools, validation, comparisons, and handoff formatting |
+| `tests` and `scripts` | Automated checks, setup, builds, and recovery tools |
 
-## Operating documentation
+See [GitHub Actions](https://github.com/agammann/cove/actions/workflows/ci.yml) for current automated results and the [documentation index](docs/README.md) for dated verification records and known limits.
 
-- [Architecture and data model](docs/architecture.md)
-- [Authentication and permissions](docs/authentication.md)
-- [MCP tools, prompts, and host matrix](docs/mcp.md)
-- [Privacy, retention, and limits](docs/privacy.md)
-- [Export and import](docs/portability.md)
-- [Deployment, migrations, backups, recovery, and rollback](docs/operations.md)
-- [Pilot design](docs/pilot.md)
-- [Build checklist](docs/build-checklist.md), [decisions](docs/decisions.md), [verification](docs/verification.md), [release readiness](docs/release-readiness.md)
-
-The local suite passes 14 domain, database, MCP and security tests plus the complete Playwright journey. See the [verification record](docs/verification.md) and [security fixes](docs/security/README.md).
-
-![Cove desktop workspace with synthetic test content](docs/workspace-desktop.png)
+## License
 
 Source is public for review. No open source license has been selected by the owner; public visibility does not itself grant a reuse license. Third party dependencies retain their own licenses.

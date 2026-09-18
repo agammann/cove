@@ -1,5 +1,7 @@
 # Operating Cove
 
+These procedures apply to an independently operated Fastify/PostgreSQL installation. The public Cove website runs on OpenAI Sites; use [Sites operations](sites.md) for that edition. For a development machine, follow [local setup](development.md) instead of the production steps below.
+
 ## Supported initial topology
 
 One small Linux host with Docker Compose, one Node 24 API container, one PostgreSQL 17 database, and Caddy terminating HTTPS. Budget at least 2 vCPU, 4 GiB RAM and 20 GiB persistent disk for an early-access installation with modest concurrency. These are starting assumptions, not load-test results. Use an external authenticated SMTP service and encrypted off-host backups. Do not expose PostgreSQL to the public network.

@@ -1,5 +1,7 @@
 # Authentication and permissions
 
+This reference describes the PostgreSQL distribution. The public [Sites edition](sites.md) uses ChatGPT sign in, the `/api/mcp` resource, and a recent session for account deletion. Its human sign in does not use local email/password or SMTP, and it does not enable remote Client ID Metadata Document fetching. Shared project grants still apply. See the [getting started guide](getting-started.md) for user instructions.
+
 ## Humans
 
 Better Auth 1.7.3 handles password hashing, verification links, recovery tokens, sessions, and cookie/CSRF behavior. Accounts require email verification. Passwords are at least 12 characters. A verified email link can establish a session; password recovery invalidates existing sessions. The account screen lists/revokes sessions and can sign out other sessions.

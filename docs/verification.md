@@ -1,5 +1,7 @@
 # Verification
 
+**Historical PostgreSQL verification record.** The results below describe the September 10 local release. For the later hosted app, see [Sites verification](sites.md#verification-on-september-13-2026). Use [GitHub Actions](https://github.com/agammann/cove/actions/workflows/ci.yml) for current automated results and [local development](development.md) for current commands.
+
 Verified locally on September 10, 2026, with UTC evidence timestamps on September 11. Environment: Windows, Node 24.19.0, pnpm 11.19.0, PostgreSQL 17.6 in Docker, Playwright Chromium and official MCP SDK 2.0.0.
 
 1. `pnpm check`: passed lint, TypeScript, 14 tests and production build. Three test files cover domain validation, real PostgreSQL transactions, authentication/OAuth/MCP and security regressions.

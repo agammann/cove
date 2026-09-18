@@ -1,5 +1,7 @@
 # Cove on OpenAI Sites
 
+[Documentation](README.md) · [User guide](getting-started.md) · [Local development](development.md)
+
 **Live:** https://cove-context.alx21.chatgpt.site. Public publication succeeded on September 13, 2026. The live browser journey verified ChatGPT sign in, project creation, a saved context revision, handoff creation and copying, persistence after a full page reload, and archiving the synthetic verification project. Anonymous requests to private APIs were denied, including an attempted spoof of the dispatch identity headers. The live MCP address is `https://cove-context.alx21.chatgpt.site/api/mcp`; its authorization challenge and resource metadata were verified. A real external assistant host has not yet been connected.
 
 The remote D1 parser rejected a `CASE ... END` expression inside the initially unapplied integrity trigger migration. Equivalent `SELECT RAISE ... WHERE` statements retained the safeguards and deployed successfully. The previously applied base and auth migrations were unchanged. Direct workspace links now use an explicit SPA fallback. The `/api/mcp` address avoids the platform's reserved `/mcp` route.
@@ -22,7 +24,7 @@ The checked in `.openai/hosting.json` contains the Site identity and logical `DB
 
 Run `pnpm build` for Sites. It removes only the verified generated `dist` directory, creates the Worker and client assets, and copies the manifest and migrations. Local Wrangler configuration and SQLite state live under ignored `.sites-runtime`, outside the deployment output. Run `pnpm build:local` for the original Fastify/PostgreSQL distribution.
 
-For a local Sites fixture, build, apply the three `drizzle/*.sql` files to `DB` with Wrangler using `.sites-runtime/wrangler.json`, then run Wrangler dev with that config, `--local --ip 127.0.0.1 --port 4318`. `node scripts/verify-sites-browser.mjs` checks that fixture and deletes its synthetic account. Never run its synthetic identity flow against a public deployment.
+For a local Sites fixture, follow the exact migration, server, and browser commands in [Build and check Sites](development.md#build-and-check-sites). `node scripts/verify-sites-browser.mjs` checks that fixture and deletes its synthetic account. Never run its synthetic identity flow against a public deployment.
 
 ## Verification on September 13, 2026
 
@@ -30,7 +32,7 @@ Lint, TypeScript checking, the production Sites build, five Sites tests, four sh
 
 The browser journey also passed against actual local workerd and D1: desktop and mobile rendering, project creation, context editing and saving, concise and full handoffs, and synthetic account deletion. See `sites-browser-verification.json` and `design/` screenshots. The local sign in fixture uses synthetic dispatch headers; it does not establish live ChatGPT sign in success.
 
-The eight original PostgreSQL integration tests could not run on the local machine because the database on port 55439 was stopped. They subsequently passed in GitHub Actions alongside the 11 other tests. That run reached the final homepage assertion in the browser journey, where it still expected the old headline. The assertion was updated to the redesigned heading. Historical container results remain in their original reports; consult the latest Actions run for the current complete workflow result.
+The eight PostgreSQL integration tests subsequently passed in GitHub Actions alongside the 11 other tests. After updating the browser assertion for the redesigned heading, the [complete September 13 workflow](https://github.com/agammann/cove/actions/runs/34745648601) passed for commit `c6c672a19a6b41fc495d0bf54d0812d1cc89b40c`, including the browser journey, dependency audit, Docker build, and Sites build. Historical container results remain in their original reports. Consult [GitHub Actions](https://github.com/agammann/cove/actions/workflows/ci.yml) for later runs.
 
 ## Operation
 

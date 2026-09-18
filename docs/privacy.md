@@ -1,5 +1,7 @@
 # Implemented privacy, retention, and limits
 
+The data handling principles below apply to Cove. Environment variable settings, Fastify request logging, PostgreSQL maintenance, and the recommended backup schedule describe the original PostgreSQL distribution. The public [Sites edition](sites.md) uses D1 and ChatGPT identity; the PostgreSQL backup schedule is not a promise about hosted retention. Production Sites backup and recovery guarantees have not been verified. See [getting started](getting-started.md) for account and project controls.
+
 Cove stores only submitted structured context, references, immutable revisions, handoffs, account/session records, connection grants, and activity metadata. It does not automatically access private conversations, hidden reasoning, native assistant memory, local file contents, unrelated accounts, or source contents. There is no Cove-owned model service.
 
 Data is private by account and project. Production HTTPS protects transport. Database and backup encryption at rest depend on the operator's host/storage configuration. Cove does not implement end-to-end encryption, zero knowledge, or a certification program. Operators with database access can read stored data.

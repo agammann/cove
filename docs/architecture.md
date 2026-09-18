@@ -1,5 +1,7 @@
 # Architecture and data model
 
+This guide describes the original Fastify/PostgreSQL distribution. The public website uses the [Sites architecture](sites.md). See [local development](development.md) for build and setup commands, or the [documentation index](README.md) to choose a guide.
+
 Cove runs one React frontend, one Fastify service that also serves MCP, and one PostgreSQL database. Production uses a Caddy HTTPS proxy. Mail is an operator-configured SMTP service; Mailpit is a development-only fixture. No model inference happens inside Cove.
 
 Browser endpoints and MCP tools call `CoveService`. The service derives the account and assistant identity from verified authentication; submitted display labels never establish identity. Every operation checks current account existence and project ownership. Assistant operations additionally check the independently stored connection's status, expiry, and project capability.
