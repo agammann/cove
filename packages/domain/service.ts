@@ -83,7 +83,7 @@ export const connectionInput = z
     clientId: z.string().min(1).max(2048),
     label: z.string().min(1).max(100),
     grants: z.array(grantSchema).max(50),
-    expiresInDays: z.number().int().min(1).max(90).default(30),
+    expiresInDays: z.number().int().min(1).max(90).optional(),
   })
   .strict();
 const exportRevision = z
@@ -814,7 +814,9 @@ export class CoveService {
           a.userId,
           v.clientId,
           v.label,
-          new Date(Date.now() + v.expiresInDays * 86400000),
+          existing && v.expiresInDays === undefined
+            ? existing.expires_at
+            : new Date(Date.now() + (v.expiresInDays ?? 30) * 86400000),
         ],
       );
       await db.query("DELETE FROM grants WHERE connection_id=$1", [cid]);

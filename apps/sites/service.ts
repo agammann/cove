@@ -609,7 +609,11 @@ export class SitesService {
           a.userId,
           v.clientId,
           v.label,
-          new Date(Date.now() + v.expiresInDays * 86400000).toISOString(),
+          existing && v.expiresInDays === undefined
+            ? existing.expires_at
+            : new Date(
+                Date.now() + (v.expiresInDays ?? 30) * 86400000,
+              ).toISOString(),
           now(),
         ),
         this.q("DELETE FROM site_grants WHERE connection_id=?", id),

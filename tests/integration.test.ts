@@ -89,6 +89,44 @@ afterAll(async () => {
   await admin.end();
 });
 describe("real PostgreSQL transactions and isolation", () => {
+  it("keeps a connection's expiration when editing permissions without renewal", async () => {
+    const p = await env.service.createProject(a, { name: "Expiration" });
+    const input = {
+      clientId: "expiration-fixture",
+      label: "Short access",
+      grants: [{ projectId: p.id, capabilities: ["read"] }],
+    };
+    const c = await env.service.saveConnection(a, {
+      ...input,
+      expiresInDays: 7,
+    });
+    const expiry = async () =>
+      new Date(
+        (await env.service.listConnections(a)).find(
+          (row: any) => row.id === c.id,
+        ).expires_at,
+      ).toISOString();
+    const original = await expiry();
+    await env.service.saveConnection(a, {
+      ...input,
+      label: "Edited permissions",
+    });
+    expect(await expiry()).toBe(original);
+    await env.service.saveConnection(a, { ...input, expiresInDays: 90 });
+    expect(new Date(await expiry()).getTime()).toBeGreaterThan(
+      new Date(original).getTime(),
+    );
+    const past = "2020-01-01T00:00:00.000Z";
+    await env.pool.query("UPDATE connections SET expires_at=$1 WHERE id=$2", [
+      past,
+      c.id,
+    ]);
+    await env.service.saveConnection(a, { ...input, label: "Still expired" });
+    expect(await expiry()).toBe(past);
+    await expect(
+      env.service.connectionActor(a.userId, input.clientId),
+    ).rejects.toMatchObject({ code: "CONNECTION_REVOKED" });
+  });
   it("returns only public numeric quotas from the authenticated usage endpoint", async () => {
     const { r, data } = await call("/api/usage", { headers: { cookie } });
     expect(r.status).toBe(200);

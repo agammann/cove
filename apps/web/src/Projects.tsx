@@ -20,6 +20,8 @@ export function Projects() {
       ? `/api/search?query=${encodeURIComponent(search)}&offset=${offset}`
       : `/api/projects?offset=${offset}`,
   );
+  const visibleProjects =
+    data?.items.filter((p: any) => archived || !p.archived) ?? [];
   return (
     <>
       <PageHead
@@ -80,43 +82,52 @@ export function Projects() {
         data && (
           <>
             <div className="project-list">
-              {data.items
-                .filter((p: any) => archived || !p.archived)
-                .map((p: any) => (
-                  <Link
-                    className="project-row"
-                    key={p.id}
-                    to={`/projects/${p.id}`}
-                  >
-                    <Folder size={24} />
-                    <div>
-                      <h2>
-                        {p.name}
-                        {p.archived && " (archived)"}
-                      </h2>
-                      <p>
-                        {p.description ||
-                          p.summary ||
-                          "Add your goal and first next step."}
-                      </p>
-                    </div>
-                    <span className="muted">
-                      Revision {p.version}
-                      {p.updated_at && <small>{when(p.updated_at)}</small>}
-                    </span>
-                    <ArrowUpRight size={20} />
-                  </Link>
-                ))}
+              {visibleProjects.map((p: any) => (
+                <Link
+                  className="project-row"
+                  key={p.id}
+                  to={`/projects/${p.id}`}
+                >
+                  <Folder size={24} />
+                  <div>
+                    <h2>
+                      {p.name}
+                      {p.archived && " (archived)"}
+                    </h2>
+                    <p>
+                      {p.description ||
+                        p.summary ||
+                        "Add your goal and first next step."}
+                    </p>
+                  </div>
+                  <span className="muted">
+                    Revision {p.version}
+                    {p.updated_at && <small>{when(p.updated_at)}</small>}
+                  </span>
+                  <ArrowUpRight size={20} />
+                </Link>
+              ))}
             </div>
-            {!data.items.length && (
+            {!visibleProjects.length && (
               <Empty>
-                <h2>Give your work a place to continue.</h2>
+                <h2>
+                  {search
+                    ? "No matching projects on this page."
+                    : data.items.length || offset > 0
+                      ? "No active projects on this page."
+                      : "Give your work a place to continue."}
+                </h2>
                 <p>
-                  Create a project, add your goal, then save a handoff for your
-                  next assistant.
+                  {search
+                    ? "Try a different search or clear it to browse your projects."
+                    : data.items.length || offset > 0
+                      ? "Include archived projects, browse another page, or start a new project."
+                      : "Create a project, add your goal, then save a handoff for your next assistant."}
                 </p>
                 <Link className="button" to="/projects/new">
-                  Create your first project
+                  {search || data.items.length || offset > 0
+                    ? "Create a project"
+                    : "Create your first project"}
                 </Link>
               </Empty>
             )}

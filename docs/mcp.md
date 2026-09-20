@@ -36,6 +36,7 @@ Retrieve Cove handoff HANDOFF_ID for project PROJECT_ID. Keep its original snaps
 
 | Client | Configuration | Result |
 | --- | --- | --- |
+| Official TypeScript SDK 2.0.0 against the public Sites endpoint | Real HTTPS, browser consent, loopback callback, PKCE, project grants | [September 19 live checks](live-acceptance-2026-09-19.md): read-only denial, save, handoff, idempotent retry, token refresh, and revocation passed; these are protocol clients, not assistant hosts |
 | Official TypeScript SDK 2.0.0, two independent OAuth clients | Loopback HTTP, native callbacks, S256 PKCE, resource audience, separate grants | Executed in integration tests; see verification report |
 | Cove browser/manual workflow | Same-origin UI, private copy formats | Executed by Playwright; see browser report |
 | Codex as an actual assistant host | Remote MCP URL, OAuth sign-in, save/continue prompts | Pending live host interaction; SDK tests are not a host test |

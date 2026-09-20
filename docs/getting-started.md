@@ -38,6 +38,8 @@ Official SDK clients have been tested; live ChatGPT and Codex assistant host int
 
 Use **Assistant connections** to review or revoke grants. Revocation blocks later requests, but does not remove copied text. A revoked connection currently requires a fresh OAuth client registration; see the reference for this limitation.
 
+Editing permissions keeps the connection's current expiration unless you explicitly select a new duration. A new duration starts when you save; keeping an already expired date does not reactivate access.
+
 ## Export, import, and organize
 
 | Task | Where to do it | Result |

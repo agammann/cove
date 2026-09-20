@@ -2,6 +2,8 @@
 
 [Documentation](README.md) · [User guide](getting-started.md) · [Local development](development.md)
 
+**Latest acceptance check:** [September 19 live verification and fixes](live-acceptance-2026-09-19.md). This includes ordinary ChatGPT sign in, desktop/mobile use, concurrent editing, real HTTPS OAuth/MCP clients, revocation, and the deployed expiration and empty-state fixes. Actual ChatGPT/Codex assistant host behavior remains unverified.
+
 **Live:** https://cove-context.alx21.chatgpt.site. Public publication succeeded on September 13, 2026. The live browser journey verified ChatGPT sign in, project creation, a saved context revision, handoff creation and copying, persistence after a full page reload, and archiving the synthetic verification project. Anonymous requests to private APIs were denied, including an attempted spoof of the dispatch identity headers. The live MCP address is `https://cove-context.alx21.chatgpt.site/api/mcp`; its authorization challenge and resource metadata were verified. A real external assistant host has not yet been connected.
 
 The remote D1 parser rejected a `CASE ... END` expression inside the initially unapplied integrity trigger migration. Equivalent `SELECT RAISE ... WHERE` statements retained the safeguards and deployed successfully. The previously applied base and auth migrations were unchanged. Direct workspace links now use an explicit SPA fallback. The `/api/mcp` address avoids the platform's reserved `/mcp` route.

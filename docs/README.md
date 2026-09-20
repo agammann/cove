@@ -29,6 +29,7 @@ Current automated results are in [GitHub Actions](https://github.com/agammann/co
 
 | Record | Scope |
 | --- | --- |
+| [September 19 live acceptance](live-acceptance-2026-09-19.md) | Public browser and mobile journeys, live OAuth/MCP, reproduced issues, fixes, and remaining boundaries |
 | [Sites verification](sites.md#verification-on-september-13-2026) | Hosted browser verification, local Worker tests, and remaining external host checks |
 | [Original verification](verification.md) | September 10 local PostgreSQL release checks |
 | [Original release readiness](release-readiness.md) | PostgreSQL release snapshot and deployment prerequisites |

@@ -100,9 +100,9 @@ it("maps Sites identity consistently and rejects anonymous, CSRF, invalid hosts 
     (await call("/api/projects", "POST", { name: "x".repeat(140000) })).response
       .status,
   ).toBe(413);
-  expect((await call("/api/mcp", "POST", {}, { cookie: "" })).response.status).toBe(
-    401,
-  );
+  expect(
+    (await call("/api/mcp", "POST", {}, { cookie: "" })).response.status,
+  ).toBe(401);
   expect(
     (await call("/.well-known/oauth-protected-resource/api/mcp")).data.resource,
   ).toBe(origin + "/api/mcp");
@@ -210,6 +210,46 @@ it("imports new private IDs and deletes account content and sessions", async () 
   expect(db.sql.prepare("SELECT count(*) n FROM site_records").get()?.n).toBe(
     0,
   );
+});
+it("preserves connection expiration on permission edits and renews only on request", async () => {
+  const p = await service.createProject(actor, { name: "Expiration" });
+  const input = {
+    clientId: "expiration-fixture",
+    label: "Short access",
+    grants: [{ projectId: p.id, capabilities: ["read"] }],
+  };
+  const created = await call("/api/connections", "POST", {
+    ...input,
+    expiresInDays: 7,
+  });
+  expect(created.response.status).toBe(200);
+  const expiry = async () =>
+    (await service.listConnections(actor)).find(
+      (c) => c.id === created.data.id,
+    )!.expires_at;
+  const original = await expiry();
+  expect(
+    (
+      await call("/api/connections", "POST", {
+        ...input,
+        label: "Edited permissions",
+      })
+    ).response.status,
+  ).toBe(200);
+  expect(await expiry()).toBe(original);
+  await call("/api/connections", "POST", { ...input, expiresInDays: 90 });
+  expect(new Date(await expiry()).getTime()).toBeGreaterThan(
+    new Date(original).getTime(),
+  );
+  const past = "2020-01-01T00:00:00.000Z";
+  db.sql
+    .prepare("UPDATE site_connections SET expires_at=? WHERE id=?")
+    .run(past, created.data.id);
+  await call("/api/connections", "POST", { ...input, label: "Still expired" });
+  expect(await expiry()).toBe(past);
+  await expect(
+    service.connectionActor(actor.userId, input.clientId),
+  ).rejects.toMatchObject({ code: "CONNECTION_REVOKED" });
 });
 it("completes OAuth PKCE with two SDK clients and enforces live revocation", async () => {
   vi.stubGlobal("fetch", async (url: any, init?: RequestInit) =>

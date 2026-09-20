@@ -25,7 +25,10 @@ export function Connections() {
           Add this remote MCP address in your assistant’s connection settings,
           then complete the sign-in and project-permission screen.
         </p>
-        <code className="endpoint">{window.location.origin}{import.meta.env.VITE_COVE_SITES === "true" ? "/api/mcp" : "/mcp"}</code>
+        <code className="endpoint">
+          {window.location.origin}
+          {import.meta.env.VITE_COVE_SITES === "true" ? "/api/mcp" : "/mcp"}
+        </code>
         <CopyButton
           text={`${window.location.origin}${import.meta.env.VITE_COVE_SITES === "true" ? "/api/mcp" : "/mcp"}`}
           label="Copy server address"
@@ -190,7 +193,9 @@ function GrantForm({
   const [offset, setOffset] = useState(0);
   const { data, error } = useData(`/api/projects?limit=50&offset=${offset}`);
   const [label, setLabel] = useState(initial?.label || "");
-  const [days, setDays] = useState(30);
+  const [days, setDays] = useState<number | undefined>(
+    initial ? undefined : 30,
+  );
   const [grants, setGrants] = useState<any[]>(initial?.grants || []);
   const [failure, setFailure] = useState<Error>();
   const [busy, setBusy] = useState(false);
@@ -209,10 +214,22 @@ function GrantForm({
       </label>
       <label>
         Authorization duration
-        <select value={days} onChange={(e) => setDays(Number(e.target.value))}>
-          <option value={7}>7 days</option>
-          <option value={30}>30 days</option>
-          <option value={90}>90 days</option>
+        <select
+          value={days ?? "keep"}
+          onChange={(e) =>
+            setDays(
+              e.target.value === "keep" ? undefined : Number(e.target.value),
+            )
+          }
+        >
+          {initial && (
+            <option value="keep">
+              Keep current expiration ({when(initial.expires_at)})
+            </option>
+          )}
+          <option value={7}>7 days from now</option>
+          <option value={30}>30 days from now</option>
+          <option value={90}>90 days from now</option>
         </select>
       </label>
       {data?.items.map((p: any) => {
