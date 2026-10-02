@@ -107,6 +107,8 @@ node scripts/verify-sites-browser.mjs
 
 This script exercises desktop/mobile rendering, saving context, handoff copying, and deletion of its synthetic account. It updates `docs/sites-browser-verification.json` and the screenshots in `docs/design`; review those changes before committing. The fixture uses synthetic identity headers and a development secret. Keep it bound to loopback, and never expose it through a tunnel or use its sign in flow against production.
 
+Run `node scripts/verify-sites-mcp.mjs` against the same local Worker to verify all seven tools over actual HTTP. Two independent SDK clients complete PKCE, save and retrieve a pinned handoff, and check read-only grants and live revocation. The check creates and removes its own fictional local account and writes `test-results/cove-sites-mcp.json`. Repeated OAuth registrations are subject to the application's rate limits; wait for the normal cooldown before rerunning. This protocol test does not establish a ChatGPT or Codex host connection.
+
 ## Troubleshooting
 
 | Symptom | Resolution |

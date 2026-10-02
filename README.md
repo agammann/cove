@@ -55,7 +55,7 @@ Local prerequisites are Node.js 24, pnpm 11.19.0, Git, and Docker with Compose. 
 | `packages/mcp` and `packages/shared` | MCP tools, validation, comparisons, and handoff formatting |
 | `tests` and `scripts` | Automated checks, setup, builds, and recovery tools |
 
-See [GitHub Actions](https://github.com/agammann/cove/actions/workflows/ci.yml) for current automated results and the [documentation index](docs/README.md) for dated verification records and known limits.
+See [GitHub Actions](https://github.com/agammann/cove/actions/workflows/ci.yml) for current automated results, [October 2 verification](docs/verification-2026-10-02.md) for the compiled browser and HTTP MCP checks, and the [documentation index](docs/README.md) for dated records and known limits.
 
 ## License
 

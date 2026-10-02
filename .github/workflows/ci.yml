@@ -40,6 +40,25 @@ jobs:
           node --input-type=module -e "for(let i=0;i<60;i++){try{const r=await fetch('http://localhost:4317/health/ready');if(r.ok)process.exit(0);}catch{}await new Promise(r=>setTimeout(r,1000));}process.exit(1);"
           pnpm test:browser
       - run: pnpm scan:secrets
-      - run: pnpm audit --audit-level=moderate
+      - run: pnpm audit --audit-level=low
       - run: docker build -t cove:ci .
       - run: pnpm build
+      - name: Verify the compiled Sites browser journey
+        run: |
+          pnpm exec wrangler d1 execute DB --local --config .sites-runtime/wrangler.json --file drizzle/0000_sticky_juggernaut.sql
+          pnpm exec wrangler d1 execute DB --local --config .sites-runtime/wrangler.json --file drizzle/0001_sites_auth.sql
+          pnpm exec wrangler d1 execute DB --local --config .sites-runtime/wrangler.json --file drizzle/0002_integrity.sql
+          pnpm exec wrangler dev --local --config .sites-runtime/wrangler.json --ip 127.0.0.1 --port 4318 --inspector-port 0 > /tmp/cove-sites.log 2>&1 &
+          preview_pid=$!
+          trap 'kill "$preview_pid" || true' EXIT
+          node --input-type=module -e "for(let i=0;i<60;i++){try{const r=await fetch('http://localhost:4318');if(r.ok)process.exit(0);}catch{}await new Promise(r=>setTimeout(r,1000));}process.exit(1);"
+          node scripts/verify-sites-browser.mjs
+          node scripts/verify-sites-mcp.mjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: cove-verification
+          path: |
+            docs/sites-browser-verification.json
+            docs/design/
+            test-results/
