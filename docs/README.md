@@ -29,7 +29,7 @@ Current automated results are in [GitHub Actions](https://github.com/agammann/co
 
 | Record | Scope |
 | --- | --- |
-| [October 2 verification](verification-2026-10-02.md) | Dependency updates, compiled browser journey and actual HTTP OAuth/MCP checks |
+| [October 2 verification](verification-2026-10-02.md) | Dependency updates, compiled browser journey, actual HTTP OAuth/MCP checks and the native Codex MCP host against the public app |
 | [September 19 live acceptance](live-acceptance-2026-09-19.md) | Public browser and mobile journeys, live OAuth/MCP, reproduced issues, fixes, and remaining boundaries |
 | [Sites verification](sites.md#verification-on-september-13-2026) | Hosted browser verification, local Worker tests, and remaining external host checks |
 | [Original verification](verification.md) | September 10 local PostgreSQL release checks |
@@ -39,4 +39,4 @@ Current automated results are in [GitHub Actions](https://github.com/agammann/co
 | [Design research](design-research.md) | Visual references and redesign direction |
 | [Pilot plan](pilot.md) | Proposed evaluation, not completed customer research |
 
-Live external ChatGPT/Codex assistant interactions and production disaster recovery remain unverified. Successful SDK fixtures, manual browser use, and local recovery exercises each establish only their own tested paths.
+The native Codex MCP host and signed-in public browser workflow have live verification. ChatGPT's assistant connection, model-generated save/continue conversations and production disaster recovery remain unverified. Each report distinguishes host tool calls, SDK fixtures, browser use and local recovery exercises.

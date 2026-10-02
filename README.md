@@ -38,7 +38,7 @@ Cove stores what you submit. It does not automatically read your assistant conve
 | Operate my own PostgreSQL installation | [PostgreSQL operations](docs/operations.md) |
 | Understand privacy or move my data | [Privacy](docs/privacy.md) and [export/import](docs/portability.md) |
 
-The hosted MCP address is `https://cove-context.alx21.chatgpt.site/api/mcp`. Live ChatGPT and Codex assistant connections remain unverified; the browser workflow and official SDK integration tests have separate verification records. Manual handoff copying works without an assistant connection. See the [compatibility matrix](docs/mcp.md#host-compatibility-matrix).
+The hosted MCP address is `https://cove-context.alx21.chatgpt.site/api/mcp`. The native Codex 0.159.2 MCP host passed OAuth and all seven tools against the public app, including saved revisions and pinned handoffs. ChatGPT's assistant connection remains unverified. Manual handoff copying works without an assistant connection. See the [compatibility matrix](docs/mcp.md#host-compatibility-matrix) for the exact test scope.
 
 ## For developers
 
