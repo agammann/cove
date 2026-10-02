@@ -124,7 +124,7 @@ Run `node scripts/verify-sites-mcp.mjs` against the same local Worker to verify 
 
 ## Maintainer checks
 
-The [CI workflow](../.github/workflows/ci.yml) also builds the Docker image and builds Sites after the local browser journey. Recovery and container exercises are separate:
+The [CI workflow](../.github/workflows/ci.yml) builds both distributions and runs the compiled Sites browser/MCP checks. A separate disposable Compose job verifies backup restoration and production container startup. You can repeat those operational checks locally:
 
 ```sh
 node scripts/backup-verify.mjs
