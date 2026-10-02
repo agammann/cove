@@ -21,7 +21,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: '24'
+          node-version: "24"
       - run: npm install --global pnpm@11.19.0
       - run: pnpm install --frozen-lockfile
       - name: Configure disposable test environment
@@ -62,3 +62,49 @@ jobs:
             docs/sites-browser-verification.json
             docs/design/
             test-results/
+  recovery:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+      - run: npm install --global pnpm@11.19.0
+      - run: pnpm install --frozen-lockfile
+      - run: node scripts/setup-env.mjs
+      - run: docker compose up -d --wait db mail
+      - run: pnpm db:migrate
+      - run: pnpm build:local
+      - name: Create fictional saved context and an assistant grant
+        run: |
+          node --input-type=module <<'NODE'
+          import { randomUUID } from 'node:crypto';
+          import { Pool } from 'pg';
+          import { CoveService } from './dist/packages/domain/service.js';
+          import { emptyContext } from './dist/packages/shared/context.js';
+          process.loadEnvFile('.env');
+          const pool = new Pool({connectionString:process.env.DATABASE_URL});
+          try {
+            const userId = randomUUID();
+            await pool.query('INSERT INTO "user"(id,name,email,"emailVerified") VALUES($1,$2,$3,true)',[userId,'Recovery fixture',`${userId}@example.test`]);
+            const service = new CoveService(pool,{MAX_PROJECTS:50,MAX_REVISIONS:1000,MAX_STORAGE_BYTES:104857600});
+            const actor = {userId};
+            const context = {...emptyContext(),goal:'Preserve this fictional project through backup and restart.'};
+            const project = await service.createProject(actor,{name:'Recovery fixture',context});
+            await service.createHandoff(actor,project.id,{expectedVersion:1,requestKey:randomUUID()});
+            await service.saveConnection(actor,{clientId:'recovery-fixture',label:'Recovery fixture',grants:[{projectId:project.id,capabilities:['read']}]});
+          } finally { await pool.end(); }
+          NODE
+      - run: node scripts/backup-verify.mjs
+      - run: docker build -t cove:0.1.0 .
+      - run: node scripts/verify-container.mjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: cove-recovery-verification
+          path: |
+            docs/recovery-verification.json
+            docs/container-verification.json
+      - name: Remove this disposable CI stack
+        if: always()
+        run: docker compose down --volumes --remove-orphans

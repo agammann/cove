@@ -34,8 +34,19 @@ const run = (args, input) =>
   });
 let target;
 let result;
+let created = false;
+const history = async (pool) => {
+  const rows = {};
+  for (const table of ["projects", "revisions", "handoffs", "events"]) {
+    rows[table] = (
+      await pool.query(`SELECT to_jsonb(t) AS row FROM ${table} t ORDER BY id`)
+    ).rows;
+  }
+  return JSON.stringify(rows);
+};
 try {
   const before = await admin.query("SELECT count(*)::int n FROM revisions");
+  const savedHistory = await history(admin);
   const dump = await run([
     "compose",
     "exec",
@@ -51,6 +62,7 @@ try {
   await mkdir("backups", { recursive: true });
   await writeFile("backups/verification.dump", dump);
   await admin.query(`CREATE DATABASE ${dbName}`);
+  created = true;
   await run(
     [
       "compose",
@@ -74,6 +86,8 @@ try {
   const restored = await target.query("SELECT count(*)::int n FROM revisions");
   if (restored.rows[0].n !== before.rows[0].n)
     throw new Error("Restored revision count mismatch");
+  if ((await history(target)) !== savedHistory)
+    throw new Error("Restored project history content mismatch");
   // Exercise reconciliation using a synthetic deleted account that exists only in the restored copy.
   const synthetic = randomUUID();
   await target.query(
@@ -159,11 +173,19 @@ try {
     restored.rows[0].n
   )
     throw new Error("Project history changed after database restart");
+  if ((await history(target)) !== savedHistory)
+    throw new Error("Project history content changed after database restart");
+  if (
+    (await target.query("SELECT 1 FROM connections WHERE status <> 'revoked'"))
+      .rowCount
+  )
+    throw new Error("Restored connections were not revoked");
   result = {
     date: new Date().toISOString(),
     backupFormat: "PostgreSQL custom",
     restoredRevisions: restored.rows[0].n,
     restore: "passed",
+    projectHistoryContent: "passed",
     deletedAccountReconciliation: "passed",
     allAccessRevokedOnRecovery: "passed",
     databaseRestartPersistence: "passed",
@@ -171,7 +193,7 @@ try {
   };
 } finally {
   if (target) await target.end();
-  await admin.query(`DROP DATABASE IF EXISTS ${dbName} WITH (FORCE)`);
+  if (created) await admin.query(`DROP DATABASE ${dbName} WITH (FORCE)`);
   await admin.end();
 }
 await writeFile(
