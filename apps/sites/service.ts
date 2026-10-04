@@ -17,6 +17,7 @@ import {
   type Snapshot,
 } from "../../packages/shared/context.js";
 import type { Database, Statement } from "./types.js";
+import { SITES_PLUGIN_CLIENT_ID } from "../../packages/shared/sites-connection.js";
 const now = () => new Date().toISOString();
 const size = (v: unknown) => new TextEncoder().encode(JSON.stringify(v)).length;
 const canonical = (v: any): string =>
@@ -577,9 +578,22 @@ export class SitesService {
     });
     return a;
   }
-  async saveConnection(a: Actor, input: unknown) {
+  async saveManagedConnection(a: Actor, input: unknown) {
+    const v = connectionInput.omit({ clientId: true }).parse(input);
+    return this.saveConnection(
+      a,
+      { ...v, clientId: SITES_PLUGIN_CLIENT_ID },
+      true,
+    );
+  }
+  async saveConnection(a: Actor, input: unknown, managed = false) {
     this.human(a);
     const v = connectionInput.parse(input);
+    if ((v.clientId === SITES_PLUGIN_CLIENT_ID) !== managed)
+      fail(
+        "INVALID_INPUT",
+        "Use Cove plugin project permissions for this connection.",
+      );
     if (new Set(v.grants.map((g) => g.projectId)).size !== v.grants.length)
       fail("INVALID_GRANTS", "Each project may appear only once.");
     return this.mutate(a, async (w) => {
@@ -588,11 +602,16 @@ export class SitesService {
         a.userId,
         v.clientId,
       );
-      if (existing?.status === "revoked")
+      if (existing?.status === "revoked" && !managed)
         fail(
           "CONNECTION_REVOKED",
           "Register a fresh OAuth client after revocation.",
           409,
+        );
+      if (existing?.status === "revoked" && v.expiresInDays === undefined)
+        fail(
+          "INVALID_INPUT",
+          "Choose a new duration to authorize the Cove plugin again.",
         );
       const count = await this.first(
         "SELECT count(*) n FROM site_connections WHERE owner_id=?",
@@ -604,7 +623,7 @@ export class SitesService {
       const id = existing?.id || randomUUID();
       w.statements.push(
         this.q(
-          "INSERT INTO site_connections(id,owner_id,client_id,label,status,expires_at,created_at) VALUES(?,?,?,?,'pending',?,?) ON CONFLICT(owner_id,client_id) DO UPDATE SET label=excluded.label,expires_at=excluded.expires_at",
+          "INSERT INTO site_connections(id,owner_id,client_id,label,status,expires_at,created_at) VALUES(?,?,?,?,'pending',?,?) ON CONFLICT(owner_id,client_id) DO UPDATE SET label=excluded.label,expires_at=excluded.expires_at,status=CASE WHEN site_connections.status='revoked' THEN 'pending' ELSE site_connections.status END",
           id,
           a.userId,
           v.clientId,

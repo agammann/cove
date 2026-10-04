@@ -3,7 +3,7 @@ import { createAuthEndpoint, APIError } from "better-auth/api";
 import { setSessionCookie } from "better-auth/cookies";
 import { jwt } from "better-auth/plugins";
 import { mcp } from "@better-auth/mcp";
-import { createHash } from "node:crypto";
+import { sitesUserId } from "./identity.js";
 import type { Environment } from "./types.js";
 export function sitesAuth(env: Environment) {
   const origin = env.APP_URL;
@@ -63,8 +63,7 @@ export function sitesAuth(env: Environment) {
                 throw new APIError("UNAUTHORIZED", {
                   message: "Sign in with ChatGPT first.",
                 });
-              const userId =
-                "siwc_" + createHash("sha256").update(oid).digest("hex");
+              const userId = sitesUserId(oid);
               const returnTo =
                 new URL(ctx.request!.url).searchParams.get("returnTo") ||
                 "/projects";

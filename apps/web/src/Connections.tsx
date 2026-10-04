@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useSearchParams } from "react-router-dom";
+import { SITES_PLUGIN_CLIENT_ID } from "../../../packages/shared/sites-connection.js";
 import {
   useData,
   ErrorBox,
@@ -13,14 +14,54 @@ export function Connections() {
   const { data, error, refresh } = useData("/api/connections");
   const [editing, setEditing] = useState<any>();
   const [actionError, setError] = useState<Error>();
+  const [managed, setManaged] = useState(false);
+  const managedConnection = data?.find(
+    (c: any) => c.client_id === SITES_PLUGIN_CLIENT_ID,
+  );
   return (
     <>
       <PageHead
         title="Assistant connections"
         description="Choose which projects each assistant can read or update."
       />
+      {import.meta.env.VITE_COVE_SITES === "true" && (
+        <section className="panel">
+          <h2>Cove plugin</h2>
+          <p>
+            Install or connect Cove in your assistant, then choose the projects
+            it can use here. Connecting alone does not grant project access.
+          </p>
+          <button
+            className="secondary"
+            disabled={!data}
+            onClick={() => setManaged(true)}
+          >
+            {managedConnection?.status === "revoked"
+              ? "Authorize Cove plugin again"
+              : managedConnection
+                ? "Edit Cove plugin access"
+                : "Choose Cove plugin projects"}
+          </button>
+        </section>
+      )}
+      {managed && (
+        <GrantForm
+          clientId={SITES_PLUGIN_CLIENT_ID}
+          managed
+          initial={
+            managedConnection?.status === "revoked"
+              ? undefined
+              : managedConnection
+          }
+          onSaved={() => {
+            setManaged(false);
+            refresh();
+          }}
+          cancel={() => setManaged(false)}
+        />
+      )}
       <section className="panel">
-        <h2>Connect from your assistant</h2>
+        <h2>Custom assistant connection</h2>
         <p>
           Add this remote MCP address in your assistant’s connection settings,
           then complete the sign-in and project-permission screen.
@@ -106,6 +147,7 @@ export function Connections() {
         <GrantForm
           clientId={editing.client_id}
           initial={editing}
+          managed={editing.client_id === SITES_PLUGIN_CLIENT_ID}
           onSaved={() => {
             setEditing(undefined);
             refresh();
@@ -184,15 +226,19 @@ function GrantForm({
   initial,
   onSaved,
   cancel,
+  managed = false,
 }: {
   clientId: string;
   initial?: any;
+  managed?: boolean;
   onSaved: () => void;
   cancel: () => void;
 }) {
   const [offset, setOffset] = useState(0);
   const { data, error } = useData(`/api/projects?limit=50&offset=${offset}`);
-  const [label, setLabel] = useState(initial?.label || "");
+  const [label, setLabel] = useState(
+    initial?.label || (managed ? "Cove plugin" : ""),
+  );
   const [days, setDays] = useState<number | undefined>(
     initial ? undefined : 30,
   );
@@ -320,12 +366,15 @@ function GrantForm({
           onClick={async () => {
             setBusy(true);
             try {
-              await post("/api/connections", {
-                clientId,
-                label,
-                grants,
-                expiresInDays: days,
-              });
+              await post(
+                managed ? "/api/connections/sites-plugin" : "/api/connections",
+                {
+                  ...(managed ? {} : { clientId }),
+                  label,
+                  grants,
+                  expiresInDays: days,
+                },
+              );
               onSaved();
             } catch (e) {
               setFailure(e as Error);

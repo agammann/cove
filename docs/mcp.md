@@ -4,6 +4,16 @@ Hosted Sites endpoint: `https://cove-context.alx21.chatgpt.site/api/mcp`. Open [
 
 Hosted protected resource discovery is available at [Cove's resource metadata](https://cove-context.alx21.chatgpt.site/.well-known/oauth-protected-resource/api/mcp). The original PostgreSQL distribution uses `/.well-known/oauth-protected-resource/mcp` on its configured origin. Authorization server metadata is provided by Better Auth. Always discover metadata rather than guessing token endpoints. PKCE, resource audience, expiry, and project grants are required. No personal access tokens or demo bearer keys are accepted.
 
+## Cove plugin on Sites
+
+The managed Cove plugin uses `/mcp` with the identity supplied by Sites. Install or connect Cove in your assistant, then open **Assistant connections → Cove plugin → Choose Cove plugin projects** in Cove. Choose only the projects, permissions and duration you intend to share. Connecting the plugin alone grants no project access. The plugin cannot authorize itself or reuse a custom OAuth client's permissions.
+
+Tool discovery contains schemas only. Every data call checks the signed-in Site identity and the separate Cove plugin grant, including project scope, permission, expiry and revocation. Website session cookies or platform service access alone do not supply this assistant grant. Revoke access in Assistant connections; using **Authorize Cove plugin again** requires an explicit new project selection and duration. Previously copied content remains outside Cove's revocation control.
+
+Custom assistant clients continue to use `/api/mcp` and the existing Cove OAuth consent flow. Their existing connections and revoked-client rules are unchanged. The managed plugin's identity is Site-scoped; local development servers must remain on loopback and must never trust arbitrary identity headers from the internet.
+
+These routes are distinct from the historical native-host verification below. A local test or successful plugin installation does not establish a completed live assistant save/continue conversation; record the actual revision and handoff only after that test succeeds.
+
 | Tool | Inputs | Result |
 | --- | --- | --- |
 | `cove_list_projects` | offset, limit (1–50) | Granted projects, IDs, versions, next offset |

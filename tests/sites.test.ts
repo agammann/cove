@@ -372,3 +372,226 @@ it("completes OAuth PKCE with two SDK clients and enforces live revocation", asy
     await two.client.close();
   }
 });
+
+async function managedClient(headers: Record<string, string> = {}) {
+  const { Client, StreamableHTTPClientTransport } =
+    await import("@modelcontextprotocol/client");
+  const client = new Client({ name: "Managed fixture", version: "1.0.0" });
+  await client.connect(
+    new StreamableHTTPClientTransport(new URL(origin + "/mcp"), {
+      fetch: async (url, init) => worker.fetch(new Request(url, init), env),
+      requestInit: { headers },
+    }),
+  );
+  return client;
+}
+
+it("discovers managed schemas without data access and does not inherit browser or custom-client grants", async () => {
+  const p = await service.createProject(actor, { name: "Managed fixture" });
+  await service.saveConnection(actor, {
+    clientId: "existing-custom-client",
+    label: "Existing client",
+    grants: [{ projectId: p.id, capabilities: ["read", "write", "handoff"] }],
+  });
+  const anonymous = await managedClient();
+  const browserOnly = await managedClient({
+    cookie,
+    "oai-authenticated-user-email": "alice@example.test",
+  });
+  const ungranted = await managedClient({
+    "oai-authenticated-user-id": "fixture-alice",
+  });
+  try {
+    expect((await anonymous.listTools()).tools).toHaveLength(7);
+    for (const client of [anonymous, browserOnly, ungranted]) {
+      await expect(
+        client.callTool({ name: "cove_list_projects", arguments: {} }),
+      ).rejects.toThrow();
+    }
+    const rpc = {
+      jsonrpc: "2.0",
+      id: 1,
+      method: "tools/call",
+      params: { name: "cove_list_projects", arguments: {} },
+    };
+    const unauthenticated = await call("/mcp", "POST", rpc);
+    expect(unauthenticated.response.status).toBe(401);
+    expect(unauthenticated.data.error.code).toBe("AUTH_REQUIRED");
+    const unapproved = await call("/mcp", "POST", rpc, {
+      "oai-authenticated-user-id": "fixture-alice",
+    });
+    expect(unapproved.response.status).toBe(403);
+    expect(unapproved.data.error.code).toBe("ACCESS_DENIED");
+    const { SITES_PLUGIN_CLIENT_ID } =
+      await import("../packages/shared/sites-connection.js");
+    const reserved = await call("/api/connections", "POST", {
+      clientId: SITES_PLUGIN_CLIENT_ID,
+      label: "Attempt",
+      grants: [],
+    });
+    expect(reserved.response.status).toBe(400);
+    const noSession = await call(
+      "/api/connections/sites-plugin",
+      "POST",
+      { label: "Attempt", grants: [] },
+      { cookie: "" },
+    );
+    expect(noSession.response.status).toBe(401);
+    const crossOrigin = await call(
+      "/api/connections/sites-plugin",
+      "POST",
+      { label: "Attempt", grants: [] },
+      { origin: "https://other.example" },
+    );
+    expect(crossOrigin.response.status).toBe(403);
+    expect(await service.listConnections(actor)).toHaveLength(1);
+  } finally {
+    await Promise.all([
+      anonymous.close(),
+      browserOnly.close(),
+      ungranted.close(),
+    ]);
+  }
+});
+
+it("enforces managed project permissions, identity isolation, save/handoff, expiry and explicit reauthorization", async () => {
+  const { SITES_PLUGIN_CLIENT_ID } =
+    await import("../packages/shared/sites-connection.js");
+  const granted = await service.createProject(actor, {
+    name: "Allowed fixture",
+  });
+  const privateProject = await service.createProject(actor, {
+    name: "Unshared fixture",
+  });
+  const input = {
+    label: "Cove plugin",
+    grants: [{ projectId: granted.id, capabilities: ["read"] }],
+  };
+  const saved = await call("/api/connections/sites-plugin", "POST", {
+    ...input,
+    expiresInDays: 7,
+  });
+  expect(saved.response.status).toBe(200);
+  const connection = (await service.listConnections(actor)).find(
+    (c) => c.id === saved.data.id,
+  )!;
+  expect(connection.client_id).toBe(SITES_PLUGIN_CLIENT_ID);
+  const client = await managedClient({
+    "oai-authenticated-user-id": "fixture-alice",
+  });
+  const other = await managedClient({
+    "oai-authenticated-user-id": "fixture-bob",
+  });
+  const list = () =>
+    client.callTool({ name: "cove_list_projects", arguments: {} });
+  const update = {
+    projectId: granted.id,
+    expectedVersion: 1,
+    context: { ...emptyContext(), goal: "The fictional blanket is blue." },
+    summary: "Fixture save",
+    requestKey: randomUUID(),
+  };
+  try {
+    const projects = await list();
+    expect(
+      (projects.structuredContent as any).items.map((p: any) => p.id),
+    ).toEqual([granted.id]);
+    await expect(
+      other.callTool({
+        name: "cove_get_context",
+        arguments: { projectId: granted.id, detail: "full" },
+      }),
+    ).rejects.toThrow();
+    expect(
+      (
+        await client.callTool({
+          name: "cove_get_context",
+          arguments: { projectId: privateProject.id, detail: "full" },
+        })
+      ).isError,
+    ).toBe(true);
+    expect(
+      (
+        await client.callTool({
+          name: "cove_update_context",
+          arguments: update,
+        })
+      ).isError,
+    ).toBe(true);
+    expect((await service.context(actor, granted.id)).project.version).toBe(1);
+    const upgraded = await call("/api/connections/sites-plugin", "POST", {
+      ...input,
+      grants: [
+        { projectId: granted.id, capabilities: ["read", "write", "handoff"] },
+      ],
+    });
+    expect(upgraded.response.status).toBe(200);
+    expect(
+      (await service.listConnections(actor)).find(
+        (c) => c.id === saved.data.id,
+      )!.expires_at,
+    ).toBe(connection.expires_at);
+    const changed = await client.callTool({
+      name: "cove_update_context",
+      arguments: update,
+    });
+    expect(changed.isError, JSON.stringify(changed)).not.toBe(true);
+    expect((await service.context(actor, granted.id)).project.version).toBe(2);
+    const handoff = await client.callTool({
+      name: "cove_create_handoff",
+      arguments: {
+        projectId: granted.id,
+        expectedVersion: 2,
+        requestKey: randomUUID(),
+      },
+    });
+    expect(handoff.isError, JSON.stringify(handoff)).not.toBe(true);
+    const snapshot = await client.callTool({
+      name: "cove_get_handoff",
+      arguments: {
+        projectId: granted.id,
+        handoffId: (handoff.structuredContent as any).id,
+      },
+    });
+    expect(snapshot.isError, JSON.stringify(snapshot)).not.toBe(true);
+    expect(JSON.stringify(snapshot.structuredContent)).toContain(
+      "The fictional blanket is blue.",
+    );
+    await service.revoke(actor, saved.data.id);
+    await expect(list()).rejects.toThrow();
+    const noDuration = await call(
+      "/api/connections/sites-plugin",
+      "POST",
+      input,
+    );
+    expect(noDuration.response.status).toBe(400);
+    await expect(list()).rejects.toThrow();
+    const reauthorized = await call("/api/connections/sites-plugin", "POST", {
+      ...input,
+      expiresInDays: 7,
+    });
+    expect(reauthorized.response.status).toBe(200);
+    expect((await list()).isError).not.toBe(true);
+    expect(
+      (
+        await client.callTool({
+          name: "cove_update_context",
+          arguments: {
+            ...update,
+            expectedVersion: 2,
+            requestKey: randomUUID(),
+          },
+        })
+      ).isError,
+    ).toBe(true);
+    db.sql
+      .prepare("UPDATE site_connections SET expires_at=? WHERE id=?")
+      .run("2020-01-01T00:00:00.000Z", saved.data.id);
+    await expect(list()).rejects.toThrow();
+    expect(
+      (await service.context(actor, privateProject.id)).project.version,
+    ).toBe(1);
+  } finally {
+    await Promise.all([client.close(), other.close()]);
+  }
+});
