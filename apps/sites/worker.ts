@@ -1,6 +1,9 @@
 import { z } from "zod";
 import { requireMcpAuth } from "@better-auth/mcp";
-import { createMcpHandler } from "@modelcontextprotocol/server";
+import {
+  createMcpHandler,
+  PROTOCOL_VERSION_META_KEY,
+} from "@modelcontextprotocol/server";
 import { makeServer } from "../../packages/mcp/server.js";
 import { DomainError, type Actor } from "../../packages/domain/service.js";
 import { pageSchema, formatHandoff } from "../../packages/shared/context.js";
@@ -66,8 +69,18 @@ export async function route(
     path !== "/mcp"
   ) {
     const asset = await env.ASSETS.fetch(request);
-    if (asset.status !== 404 || !["GET", "HEAD"].includes(method) || /\.[a-z0-9]+$/i.test(path)) return asset;
-    return env.ASSETS.fetch(new Request(new URL("/index.html", origin), { method, headers: request.headers }));
+    if (
+      asset.status !== 404 ||
+      !["GET", "HEAD"].includes(method) ||
+      /\.[a-z0-9]+$/i.test(path)
+    )
+      return asset;
+    return env.ASSETS.fetch(
+      new Request(new URL("/index.html", origin), {
+        method,
+        headers: request.headers,
+      }),
+    );
   }
   const auth = sitesAuth(env);
   let input: any = {};
@@ -104,23 +117,69 @@ export async function route(
   if (path === "/mcp") {
     if (method !== "POST")
       return new Response(null, { status: 405, headers: { Allow: "POST" } });
+    // Sites may forward the modern envelope without its duplicate routing
+    // headers. Preserve supplied headers so the SDK still rejects conflicts.
+    const modernEnvelope =
+      typeof input?.params?._meta?.[PROTOCOL_VERSION_META_KEY] === "string";
+    if (
+      modernEnvelope &&
+      typeof input.method === "string" &&
+      /^[a-zA-Z][a-zA-Z0-9_/.-]{0,199}$/.test(input.method)
+    ) {
+      const headers = new Headers(request.headers);
+      if (!headers.has("mcp-method")) headers.set("mcp-method", input.method);
+      if (
+        input.method === "tools/call" &&
+        !headers.has("mcp-name") &&
+        typeof input.params?.name === "string" &&
+        /^[a-zA-Z0-9_.:-]{1,128}$/.test(input.params.name)
+      )
+        headers.set("mcp-name", input.params.name);
+      request = new Request(request, { headers });
+    }
     const managedActor = async () => {
       // Only Sites dispatch supplies this identity. Cookies or service access
       // alone do not authorize an assistant or supply project grants.
       const id = request.headers.get("oai-authenticated-user-id");
       if (!id || id.length > 2048)
-        throw new DomainError("AUTH_REQUIRED", "Connect the Cove plugin to continue.", 401);
+        throw new DomainError(
+          "AUTH_REQUIRED",
+          "Connect the Cove plugin to continue.",
+          401,
+        );
       return service.connectionActor(sitesUserId(id), SITES_PLUGIN_CLIENT_ID);
     };
     // Authentication failures must reach the HTTP boundary. Discovery remains
     // schema-only; per-project permission checks still run inside every tool.
-    const actor = input?.method === "tools/call" ? await managedActor() : managedActor;
-    const handler = createMcpHandler(
-      () => makeServer(service as any, actor),
-      { legacy: "stateless", responseMode: "json", maxSubscriptions: 0 },
-    );
+    const actor =
+      input?.method === "tools/call" ? await managedActor() : managedActor;
+    const handler = createMcpHandler(() => makeServer(service as any, actor), {
+      legacy: "stateless",
+      responseMode: "json",
+      maxSubscriptions: 0,
+    });
     try {
-      return await handler.fetch(request);
+      const response = await handler.fetch(request);
+      if (response.status === 400) {
+        const error = (await response
+          .clone()
+          .json()
+          .catch(() => null)) as { error?: { code?: unknown } } | null;
+        console.warn("Cove MCP request rejected", {
+          method: [
+            "initialize",
+            "server/discover",
+            "tools/list",
+            "tools/call",
+          ].includes(input?.method)
+            ? input.method
+            : "other",
+          modernEnvelope,
+          errorCode:
+            typeof error?.error?.code === "number" ? error.error.code : null,
+        });
+      }
+      return response;
     } finally {
       await handler.close();
     }
