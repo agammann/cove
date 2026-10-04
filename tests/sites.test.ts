@@ -386,6 +386,84 @@ async function managedClient(headers: Record<string, string> = {}) {
   return client;
 }
 
+it("accepts managed modern routing headers omitted by the host and rejects conflicting headers", async () => {
+  const {
+    PROTOCOL_VERSION_META_KEY,
+    SERVER_INFO_META_KEY,
+    CLIENT_INFO_META_KEY,
+    CLIENT_CAPABILITIES_META_KEY,
+  } = await import("@modelcontextprotocol/server");
+  const { SITES_PLUGIN_CLIENT_ID } =
+    await import("../packages/shared/sites-connection.js");
+  const meta = {
+    [PROTOCOL_VERSION_META_KEY]: "2026-07-28",
+    [CLIENT_INFO_META_KEY]: {
+      name: "Header compatibility fixture",
+      version: "1.0.0",
+    },
+    [CLIENT_CAPABILITIES_META_KEY]: {},
+  };
+  const headers = {
+    accept: "application/json, text/event-stream",
+    "mcp-protocol-version": "2026-07-28",
+    "oai-authenticated-user-id": "fixture-alice",
+  };
+  const rpc = (method: string, params: Record<string, unknown> = {}) => ({
+    jsonrpc: "2.0",
+    id: 1,
+    method,
+    params: { ...params, _meta: meta },
+  });
+  const discovered = await call(
+    "/mcp",
+    "POST",
+    rpc("server/discover"),
+    headers,
+  );
+  expect(discovered.response.status, JSON.stringify(discovered.data)).toBe(200);
+  expect(discovered.data.result._meta[SERVER_INFO_META_KEY].name).toBe("cove");
+  const listed = await call("/mcp", "POST", rpc("tools/list"), headers);
+  expect(listed.response.status, JSON.stringify(listed.data)).toBe(200);
+  expect(listed.data.result.tools).toHaveLength(7);
+  const conflict = await call("/mcp", "POST", rpc("tools/list"), {
+    ...headers,
+    "mcp-method": "tools/call",
+  });
+  expect(conflict.response.status).toBe(400);
+  expect(conflict.data.error.code).toBe(-32020);
+  const project = await service.createProject(actor, {
+    name: "Header compatibility fixture",
+  });
+  await service.saveConnection(
+    actor,
+    {
+      clientId: SITES_PLUGIN_CLIENT_ID,
+      label: "Header compatibility fixture",
+      grants: [{ projectId: project.id, capabilities: ["read"] }],
+    },
+    true,
+  );
+  const tool = rpc("tools/call", { name: "cove_list_projects", arguments: {} });
+  const result = await call("/mcp", "POST", tool, headers);
+  expect(result.response.status, JSON.stringify(result.data)).toBe(200);
+  expect(JSON.stringify(result.data.result.structuredContent)).toContain(
+    project.id,
+  );
+  const nameConflict = await call("/mcp", "POST", tool, {
+    ...headers,
+    "mcp-name": "cove_get_context",
+  });
+  expect(nameConflict.response.status).toBe(400);
+  expect(nameConflict.data.error.code).toBe(-32020);
+  const invalidEnvelope = await call(
+    "/mcp",
+    "POST",
+    { ...rpc("tools/list"), params: {} },
+    headers,
+  );
+  expect(invalidEnvelope.response.status).toBe(400);
+});
+
 it("discovers managed schemas without data access and does not inherit browser or custom-client grants", async () => {
   const p = await service.createProject(actor, { name: "Managed fixture" });
   await service.saveConnection(actor, {
