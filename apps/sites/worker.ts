@@ -7,6 +7,8 @@ import { pageSchema, formatHandoff } from "../../packages/shared/context.js";
 import { SitesService } from "./service.js";
 import { sitesAuth } from "./auth.js";
 import type { Environment } from "./types.js";
+import { sitesUserId } from "./identity.js";
+import { SITES_PLUGIN_CLIENT_ID } from "../../packages/shared/sites-connection.js";
 const json = (v: unknown, status = 200) => Response.json(v, { status });
 async function body(request: Request, limit: number) {
   if (Number(request.headers.get("content-length")) > limit)
@@ -99,7 +101,31 @@ export async function route(
     }
     return response;
   }
-  if (path === "/api/mcp" || path === "/mcp") {
+  if (path === "/mcp") {
+    if (method !== "POST")
+      return new Response(null, { status: 405, headers: { Allow: "POST" } });
+    const managedActor = async () => {
+      // Only Sites dispatch supplies this identity. Cookies or service access
+      // alone do not authorize an assistant or supply project grants.
+      const id = request.headers.get("oai-authenticated-user-id");
+      if (!id || id.length > 2048)
+        throw new DomainError("AUTH_REQUIRED", "Connect the Cove plugin to continue.", 401);
+      return service.connectionActor(sitesUserId(id), SITES_PLUGIN_CLIENT_ID);
+    };
+    // Authentication failures must reach the HTTP boundary. Discovery remains
+    // schema-only; per-project permission checks still run inside every tool.
+    const actor = input?.method === "tools/call" ? await managedActor() : managedActor;
+    const handler = createMcpHandler(
+      () => makeServer(service as any, actor),
+      { legacy: "stateless", responseMode: "json", maxSubscriptions: 0 },
+    );
+    try {
+      return await handler.fetch(request);
+    } finally {
+      await handler.close();
+    }
+  }
+  if (path === "/api/mcp") {
     if (method !== "POST")
       return new Response(null, { status: 405, headers: { Allow: "POST" } });
     return requireMcpAuth(
@@ -107,7 +133,8 @@ export async function route(
       async (req, claims) => {
         if (
           typeof claims.sub !== "string" ||
-          typeof claims.client_id !== "string"
+          typeof claims.client_id !== "string" ||
+          claims.client_id === SITES_PLUGIN_CLIENT_ID
         )
           throw new DomainError(
             "AUTH_REQUIRED",
@@ -169,6 +196,8 @@ export async function route(
   }
   if (path === "/api/connections" && method === "GET")
     return json(await service.listConnections(a));
+  if (path === "/api/connections/sites-plugin" && method === "POST")
+    return json(await service.saveManagedConnection(a, input));
   if (path === "/api/connections" && method === "POST")
     return json(await service.saveConnection(a, input));
   if (path === "/api/connection-failure" && method === "POST")

@@ -37,7 +37,19 @@ export function mcpHandler(auth: Auth, service: CoveService, origin: string) {
     { resource: `${origin}/mcp`, requiredScopes: ["cove"] },
   );
 }
-export function makeServer(service: Pick<CoveService, 'listProjects' | 'context' | 'search' | 'update' | 'createHandoff' | 'handoff' | 'compare'>, a: Actor) {
+export function makeServer(
+  service: Pick<
+    CoveService,
+    | "listProjects"
+    | "context"
+    | "search"
+    | "update"
+    | "createHandoff"
+    | "handoff"
+    | "compare"
+  >,
+  actor: Actor | (() => Promise<Actor>),
+) {
   const server = new McpServer(
     { name: "cove", version: "0.1.0" },
     {
@@ -50,7 +62,7 @@ export function makeServer(service: Pick<CoveService, 'listProjects' | 'context'
     description: string,
     schema: z.ZodType,
     mutates: boolean,
-    run: (v: any) => Promise<unknown>,
+    run: (v: any, a: Actor) => Promise<unknown>,
   ) => {
     server.registerTool(
       name,
@@ -66,7 +78,8 @@ export function makeServer(service: Pick<CoveService, 'listProjects' | 'context'
       },
       async (v: any) => {
         try {
-          const result = await run(v);
+          const a = typeof actor === "function" ? await actor() : actor;
+          const result = await run(v, a);
           const text = JSON.stringify(result);
           if (Buffer.byteLength(text) > 524288)
             throw new DomainError(
@@ -109,7 +122,7 @@ export function makeServer(service: Pick<CoveService, 'listProjects' | 'context'
     "List only projects granted to this connection. Pages contain at most 50 projects.",
     pageSchema,
     false,
-    (v) => service.listProjects(a, v.offset, v.limit),
+    (v, a) => service.listProjects(a, v.offset, v.limit),
   );
   register(
     "cove_get_context",
@@ -120,35 +133,36 @@ export function makeServer(service: Pick<CoveService, 'listProjects' | 'context'
       detail: z.enum(["concise", "full"]).default("concise"),
     }),
     false,
-    (v) => service.context(a, v.projectId, v.version, v.detail === "concise"),
+    (v, a) =>
+      service.context(a, v.projectId, v.version, v.detail === "concise"),
   );
   register(
     "cove_search",
     "Search current project context within your read grants. Does not fetch sources.",
     pageSchema.extend({ query: z.string().min(1).max(200) }),
     false,
-    (v) => service.search(a, v.query, v.offset, v.limit),
+    (v, a) => service.search(a, v.query, v.offset, v.limit),
   );
   register(
     "cove_update_context",
     "Replace the full structured context using expectedVersion after reading current context. Preserve existing IDs and fields. Stale saves fail. Use the same requestKey for retries; seven-day deduplication.",
     updateSchema.extend({ projectId: id }),
     true,
-    ({ projectId, ...v }) => service.update(a, projectId, v),
+    ({ projectId, ...v }, a) => service.update(a, projectId, v),
   );
   register(
     "cove_create_handoff",
     "Publish an immutable snapshot from the explicitly identified current revision. Rejects publication if the project changed. Corrections require a new handoff.",
     handoffInput.extend({ projectId: id }),
     true,
-    ({ projectId, ...v }) => service.createHandoff(a, projectId, v),
+    ({ projectId, ...v }, a) => service.createHandoff(a, projectId, v),
   );
   register(
     "cove_get_handoff",
     "Retrieve the original private snapshot and separately identify newer context. Includes readable changes and copy formats. Retrieval is observed, not proof of continuation.",
     z.object({ projectId: id, handoffId: id }),
     false,
-    (v) => service.handoff(a, v.projectId, v.handoffId),
+    (v, a) => service.handoff(a, v.projectId, v.handoffId),
   );
   register(
     "cove_get_changes",
@@ -159,7 +173,7 @@ export function makeServer(service: Pick<CoveService, 'listProjects' | 'context'
       to: z.number().int().positive(),
     }),
     false,
-    (v) => service.compare(a, v.projectId, v.from, v.to),
+    (v, a) => service.compare(a, v.projectId, v.from, v.to),
   );
   return server;
 }
