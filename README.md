@@ -17,6 +17,15 @@ The public website runs the complete app on OpenAI Sites with persistent storage
 
 ![Cove workspace with a saved research project and synthetic example content](docs/design/workspace-desktop.png)
 
+## Connect the Cove plugin
+
+1. Install or connect **Cove** in your assistant, then sign in to the Cove website.
+2. Open **Assistant connections → Cove plugin → Choose Cove plugin projects**.
+3. Select the projects, permissions, and access duration you want to share. To save context and create handoffs, choose **Read, update, and create handoffs**.
+4. Choose **Authorize selected projects**, then ask your assistant to save or continue a project using the [example prompts](docs/mcp.md#save-prompt).
+
+Connecting the plugin alone grants no project access. After sign in, Cove may return to **Projects**; open **Assistant connections** from the sidebar to finish authorization.
+
 ## What you can do
 
 * Keep structured context with revision history and comparisons.
@@ -38,7 +47,7 @@ Cove stores what you submit. It does not automatically read your assistant conve
 | Operate my own PostgreSQL installation | [PostgreSQL operations](docs/operations.md) |
 | Understand privacy or move my data | [Privacy](docs/privacy.md) and [export/import](docs/portability.md) |
 
-The hosted MCP address is `https://cove-context.alx21.chatgpt.site/api/mcp`. The native Codex 0.159.2 MCP host passed OAuth and all seven tools against the public app, including saved revisions and pinned handoffs. ChatGPT's assistant connection remains unverified. Manual handoff copying works without an assistant connection. See the [compatibility matrix](docs/mcp.md#host-compatibility-matrix) for the exact test scope.
+The installed Cove plugin uses the managed `/mcp` route. Custom OAuth clients use `https://cove-context.alx21.chatgpt.site/api/mcp`. The [October 4 live plugin test](docs/verification-assistant-2026-10-04.md) passed a real assistant save, exact readback, pinned handoff, and continuation by a fresh assistant in Codex. The earlier native Codex 0.159.2 OAuth host check passed all seven tools. See the [compatibility matrix](docs/mcp.md#host-compatibility-matrix) for the tested clients and scope.
 
 ## For developers
 
