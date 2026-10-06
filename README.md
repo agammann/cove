@@ -68,4 +68,4 @@ See [GitHub Actions](https://github.com/agammann/cove/actions/workflows/ci.yml) 
 
 ## License
 
-Source is public for review. No open source license has been selected by the owner; public visibility does not itself grant a reuse license. Third party dependencies retain their own licenses.
+Cove is licensed under the [MIT License](LICENSE). Third party dependencies retain their own licenses.
