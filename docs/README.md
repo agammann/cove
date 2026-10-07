@@ -15,6 +15,7 @@
 
 | Guide | Applies to |
 | --- | --- |
+| [Cove v1](v1.md) | Supported paths, versioned source installation, stable interfaces and release limits |
 | [Local development](development.md) | Setup, build commands, testing, and troubleshooting for both distributions |
 | [Sites](sites.md) | The public app: Worker, D1, ChatGPT sign in, deployment configuration, and hosted verification |
 | [PostgreSQL architecture](architecture.md) | The original Fastify service and PostgreSQL data model |
@@ -29,6 +30,7 @@ Current automated results are in [GitHub Actions](https://github.com/agammann/co
 
 | Record | Scope |
 | --- | --- |
+| [October 6 verification](verification-2026-10-06.md) | Native connector retries/conflicts, fresh-assistant pinned continuation, updated dependencies and isolated source-installation checks |
 | [October 2 verification](verification-2026-10-02.md) | Dependency updates, compiled browser journey, actual HTTP OAuth/MCP checks and the native Codex MCP host against the public app |
 | [September 19 live acceptance](live-acceptance-2026-09-19.md) | Public browser and mobile journeys, live OAuth/MCP, reproduced issues, fixes, and remaining boundaries |
 | [Sites verification](sites.md#verification-on-september-13-2026) | Hosted browser verification, local Worker tests, and remaining external host checks |
@@ -39,4 +41,4 @@ Current automated results are in [GitHub Actions](https://github.com/agammann/co
 | [Design research](design-research.md) | Visual references and redesign direction |
 | [Pilot plan](pilot.md) | Proposed evaluation, not completed customer research |
 
-The native Codex MCP host and signed-in public browser workflow have live verification. ChatGPT's assistant connection, model-generated save/continue conversations and production disaster recovery remain unverified. Each report distinguishes host tool calls, SDK fixtures, browser use and local recovery exercises.
+The native Codex MCP host, installed Cove plugin save/continue workflow, and signed-in public browser workflow have dated live verification. A separate ChatGPT web assistant connection and production disaster recovery remain unverified. Each report distinguishes host tool calls, SDK fixtures, browser use and local recovery exercises.

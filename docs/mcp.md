@@ -14,6 +14,8 @@ Custom assistant clients continue to use `/api/mcp` and the existing Cove OAuth 
 
 The [October 4 production check](verification-assistant-2026-10-04.md) verified the installed Cove plugin in Codex: an assistant saved context, read it back exactly, created a pinned handoff, and a fresh assistant retrieved that handoff and correctly used its saved context. This uses the managed route and is separate from the earlier custom OAuth host checks below.
 
+The [October 6 check](verification-2026-10-06.md) repeated an exact save/readback, identical retry, rejected stale write, and pinned handoff retrieval through the installed plugin. A fresh assistant retrieved the pinned snapshot with newer context present and distinguished its saved facts from the later changes.
+
 | Tool | Inputs | Result |
 | --- | --- | --- |
 | `cove_list_projects` | offset, limit (1–50) | Granted projects, IDs, versions, next offset |
@@ -50,7 +52,7 @@ Retrieve Cove handoff HANDOFF_ID for project PROJECT_ID. Keep its original snaps
 | Official TypeScript SDK 2.0.0, two independent OAuth clients | Loopback HTTP, native callbacks, S256 PKCE, resource audience, separate grants | Executed in integration tests; see verification report |
 | Cove browser/manual workflow | Same-origin UI, private copy formats | Executed by Playwright; see browser report |
 | Native Codex 0.159.2 MCP host on Windows | Public remote MCP URL, browser OAuth, one project with read/write/handoff grants | [October 2 live host checks](verification-2026-10-02.md#public-app-and-native-codex-host): all seven tools, save/handoff retries, conflict rejection, pinned snapshots and browser-visible persistence passed through the app-server's MCP tool-call interface; model-generated save/continue conversations were not exercised |
-| Installed Cove plugin in Codex | Production managed `/mcp`, Sites identity, explicit read/write/handoff grant for one disposable project | [October 4 live assistant check](verification-assistant-2026-10-04.md): save from version 3 to 4, exact readback, pinned handoff and fresh-assistant continuation passed through native plugin tools |
+| Installed Cove plugin in Codex | Production managed `/mcp`, Sites identity, explicit read/write/handoff grant for one disposable project | [October 6 live check](verification-2026-10-06.md): exact save/readback, retry/conflict handling, pinned handoff and fresh-assistant continuation with newer context present passed through native plugin tools; [October 4 record](verification-assistant-2026-10-04.md) remains available |
 | ChatGPT web UI client | Installed plugin and account's available connection flow | A separate ChatGPT web UI run was not performed; the October 4 installed-plugin test above ran in Codex |
 
 Checked official instructions: [Codex MCP](https://learn.chatgpt.com/docs/extend/mcp?surface=cli) and [ChatGPT connection testing](https://developers.openai.com/plugins/deploy/connect-chatgpt). Exact host UI and availability can vary by account. The October 2 check used a temporary host configuration and did not change the user's persistent MCP configuration. Record client/version, date, endpoint, configuration, grants, and actual saved IDs when verifying a host. Do not call provider support verified based only on registration or discovery.

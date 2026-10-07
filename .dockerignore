@@ -5,6 +5,7 @@ node_modules
 .pnpm-store
 .cache
 dist
+release-artifacts
 backups
 test-results
 playwright-report
