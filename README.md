@@ -6,6 +6,8 @@ Cove keeps your project's goals, decisions, sources, progress, and next steps in
 
 **[Open Cove](https://cove-context.alx21.chatgpt.site)** · **[Getting started](docs/getting-started.md)** · **[Documentation](docs/README.md)**
 
+[Cove v1](docs/v1.md) defines the supported website, installed Codex plugin, and PostgreSQL source-installation paths. [Versioned releases](https://github.com/agammann/cove/releases) include source and SHA256 checksums.
+
 ## Start with the website
 
 1. Open Cove and sign in with ChatGPT.

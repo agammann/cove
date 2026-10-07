@@ -1,5 +1,9 @@
 name: Cove verification
-on: [push, pull_request]
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
 permissions:
   contents: read
 jobs:
@@ -96,7 +100,7 @@ jobs:
           } finally { await pool.end(); }
           NODE
       - run: node scripts/backup-verify.mjs
-      - run: docker build -t cove:0.1.0 .
+      - run: docker build -t cove:1.0.0 .
       - run: node scripts/verify-container.mjs
       - uses: actions/upload-artifact@v4
         if: always()
@@ -108,3 +112,52 @@ jobs:
       - name: Remove this disposable CI stack
         if: always()
         run: docker compose down --volumes --remove-orphans
+
+  source:
+    name: Package committed source
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: "24"
+      - run: node scripts/package-release.mjs
+      - name: Check source archive and checksum
+        run: |
+          cd release-artifacts
+          sha256sum -c cove_*.zip.sha256
+          unzip -t cove_*.zip
+      - name: Keep versioned source
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: cove-source
+          path: |
+            release-artifacts/cove_*_source.zip
+            release-artifacts/cove_*_source.zip.sha256
+          if-no-files-found: error
+          overwrite: true
+  publish:
+    name: Publish verified source release
+    needs: [verify, recovery, source]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    concurrency:
+      group: cove-release
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - name: Read source package from this verified run
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: cove-source
+          path: release-artifacts
+      - name: Publish complete source package
+        uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8
+        with:
+          script: |
+            const { pathToFileURL } = require('node:url');
+            const { resolve } = require('node:path');
+            const { default: publish } = await import(pathToFileURL(resolve('scripts/release.mjs')).href);
+            await publish({ github, context, core });

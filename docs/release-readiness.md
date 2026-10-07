@@ -1,5 +1,7 @@
 # Release readiness
 
+The current release contract and supported delivery paths are in [Cove v1](v1.md). The record below describes the earlier PostgreSQL candidate and keeps its original scope and prerequisites.
+
 **Historical PostgreSQL release snapshot, before the Sites launch.** The original status and prerequisites below are preserved for that distribution. The public app subsequently launched on OpenAI Sites; see [Sites status and verification](sites.md) and [current automated checks](https://github.com/agammann/cove/actions/workflows/ci.yml). Start with [the user guide](getting-started.md) to use the hosted app.
 
 **Local release candidate. Public launch readiness has not been established.**

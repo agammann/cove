@@ -62,7 +62,7 @@ try {
   await run([
     "run",
     ...baseArgs,
-    "cove:0.1.0",
+    "cove:1.0.0",
     "node",
     "dist/packages/database/migrate.js",
   ]);
@@ -79,7 +79,7 @@ try {
     "ALL",
     "--security-opt",
     "no-new-privileges:true",
-    "cove:0.1.0",
+    "cove:1.0.0",
   ]);
   const verify = `import {get} from 'node:http';const read=(path,host='cove-smoke.example.test')=>new Promise((resolve,reject)=>{get({hostname:'127.0.0.1',port:4317,path,headers:{Host:host}},r=>{let body='';r.on('data',b=>body+=b);r.on('end',()=>resolve({status:r.statusCode,body}));}).on('error',reject);});for(const path of ['/health/live','/health/ready','/']){const r=await read(path);if(r.status!==200)throw Error(path+' status '+r.status);if(path==='/'&&!r.body.includes('/assets/'))throw Error('Frontend unavailable');}if((await read('/health/live','untrusted.example')).status!==400)throw Error('Host guard failed');if(process.getuid()===0)throw Error('Unexpected root user');`;
   let ready = false;
@@ -114,7 +114,7 @@ try {
   }
   if (!restarted) throw new Error("Production container restart failed");
   const rejected = await run(
-    ["run", ...baseArgs, "-e", "DEMO_AUTH=true", "cove:0.1.0"],
+    ["run", ...baseArgs, "-e", "DEMO_AUTH=true", "cove:1.0.0"],
     true,
   );
   if (
@@ -125,7 +125,7 @@ try {
   const image = await run([
     "image",
     "inspect",
-    "cove:0.1.0",
+    "cove:1.0.0",
     "--format",
     "{{.Id}}",
   ]);

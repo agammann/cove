@@ -36,6 +36,8 @@ pnpm start
 
 The setup script creates `.env` with a random session secret and preserves an existing file. Compose starts PostgreSQL and Mailpit. Database data persists in the named `cove-data` volume. These defaults are for local development; see [operations](operations.md) for an independent production installation.
 
+For a versioned source installation, download `cove_1.0.0_source.zip` and its `.sha256` file from the [GitHub release](https://github.com/agammann/cove/releases/tag/v1.0.0), verify the checksum as described in [v1 delivery](v1.md#source-release), and extract it. Open a terminal in `cove-1.0.0` and start with `pnpm install --frozen-lockfile` above. The archive includes source, locked dependencies, migrations, and documentation; install dependencies and build the local server on your machine.
+
 Keep that terminal running and open `http://localhost:4317` on the same computer. Create an account with a password of at least 12 characters. Open `http://localhost:8025` for Mailpit and follow the verification email's link. Mailpit captures development email; it does not deliver it to your real inbox. Password recovery uses it too.
 
 Create a project and follow the [first handoff walkthrough](getting-started.md#create-your-first-project). Local accounts are separate from the public app's ChatGPT accounts. There is no seeded administrator.
@@ -128,8 +130,8 @@ The [CI workflow](../.github/workflows/ci.yml) builds both distributions and run
 
 ```sh
 node scripts/backup-verify.mjs
+docker build -t cove:1.0.0 .
 node scripts/verify-container.mjs
-docker build -t cove:0.1.0 .
 ```
 
 The recovery exercise restarts this Compose project's database and leaves an ignored local dump. Run it when no one is actively using that local instance. Read the [backup and recovery procedure](operations.md) first. These checks do not establish production disaster recovery or real external assistant host compatibility.
