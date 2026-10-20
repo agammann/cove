@@ -58,7 +58,7 @@ jobs:
           node --input-type=module -e "for(let i=0;i<60;i++){try{const r=await fetch('http://localhost:4318');if(r.ok)process.exit(0);}catch{}await new Promise(r=>setTimeout(r,1000));}process.exit(1);"
           node scripts/verify-sites-browser.mjs
           node scripts/verify-sites-mcp.mjs
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         if: always()
         with:
           name: cove-verification
@@ -102,7 +102,7 @@ jobs:
       - run: node scripts/backup-verify.mjs
       - run: docker build -t cove:1.0.1 .
       - run: node scripts/verify-container.mjs
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         if: always()
         with:
           name: cove-recovery-verification
@@ -128,7 +128,7 @@ jobs:
           sha256sum -c cove_*.zip.sha256
           unzip -t cove_*.zip
       - name: Keep versioned source
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: cove-source
           path: |
