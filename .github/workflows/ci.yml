@@ -100,7 +100,7 @@ jobs:
           } finally { await pool.end(); }
           NODE
       - run: node scripts/backup-verify.mjs
-      - run: docker build -t cove:1.0.0 .
+      - run: docker build -t cove:1.0.1 .
       - run: node scripts/verify-container.mjs
       - uses: actions/upload-artifact@v4
         if: always()
