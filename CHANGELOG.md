@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.0.1
+
+- Create local `.env` files exclusively so a concurrent setup never overwrites another process's environment.
+- Preserve existing files, directories and dangling links without reading the template or following the entry.
+- Test competing writers and ordinary setup, and include the fix in the versioned source download.
+
 ## 1.0.0
 
 Cove's first stable source release defines the website, installed Codex plugin, and PostgreSQL source-installation paths. It includes structured private project context, revision history, pinned handoffs, explicit assistant project grants, and JSON/Markdown portability.
