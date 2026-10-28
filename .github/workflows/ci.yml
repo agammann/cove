@@ -116,6 +116,19 @@ jobs:
   source:
     name: Package committed source
     runs-on: ubuntu-latest
+    timeout-minutes: 20
+    services:
+      postgres:
+        image: postgres:17.6-alpine
+        env:
+          POSTGRES_USER: cove
+          POSTGRES_PASSWORD: cove-ci-disposable
+          POSTGRES_DB: cove
+        ports: ["5432:5432"]
+        options: --health-cmd "pg_isready -U cove" --health-interval 5s --health-timeout 3s --health-retries 20
+      mail:
+        image: axllent/mailpit:v1.27
+        ports: ["1025:1025", "8025:8025"]
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
@@ -127,6 +140,38 @@ jobs:
           cd release-artifacts
           sha256sum -c cove_*.zip.sha256
           unzip -t cove_*.zip
+      - name: Extract a fresh source consumer outside the checkout
+        run: |
+          consumer_root=$(mktemp -d "$RUNNER_TEMP/cove-consumer.XXXXXX")
+          unzip -q release-artifacts/cove_*_source.zip -d "$consumer_root"
+          version=$(node -p "require('./package.json').version")
+          consumer="$consumer_root/cove-$version"
+          test -f "$consumer/pnpm-lock.yaml"
+          test ! -e "$consumer/node_modules"
+          test ! -e "$consumer/.git"
+          echo "SOURCE_CONSUMER=$consumer" >> "$GITHUB_ENV"
+      - run: npm install --global pnpm@11.19.0
+      - name: Frozen install from the extracted archive
+        working-directory: ${{ env.SOURCE_CONSUMER }}
+        run: pnpm install --frozen-lockfile
+      - name: Configure the extracted disposable environment
+        working-directory: ${{ env.SOURCE_CONSUMER }}
+        run: |
+          node scripts/setup-env.mjs
+          node --input-type=module -e "import fs from 'node:fs'; fs.writeFileSync('.env',fs.readFileSync('.env','utf8').replace('postgresql://cove:cove-local-only@localhost:55439/cove','postgresql://cove:cove-ci-disposable@localhost:5432/cove'));"
+      - name: Build and test the extracted PostgreSQL consumer
+        working-directory: ${{ env.SOURCE_CONSUMER }}
+        run: |
+          pnpm db:migrate
+          pnpm lint && pnpm typecheck && pnpm test && pnpm build:local
+      - name: Smoke the extracted production server
+        working-directory: ${{ env.SOURCE_CONSUMER }}
+        run: |
+          pnpm start > "$RUNNER_TEMP/cove-consumer-server.log" 2>&1 &
+          server_pid=$!
+          trap 'kill "$server_pid" || true' EXIT
+          node --input-type=module -e "for(let i=0;i<60;i++){try{const r=await fetch('http://localhost:4317/health/ready');if(r.ok)process.exit(0);}catch{}await new Promise(r=>setTimeout(r,1000));}process.exit(1);"
+          curl --fail --silent http://localhost:4317/ > /dev/null
       - name: Keep versioned source
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
