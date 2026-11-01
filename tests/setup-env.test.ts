@@ -19,7 +19,7 @@ function fixture(template = true) {
   if (template)
     fs.writeFileSync(
       path.join(directory, ".env.example"),
-      "SESSION_SECRET=replace-with-at-least-32-random-characters\nKEEP=value\n",
+      "DATABASE_URL=\nPOSTGRES_PASSWORD=\nSESSION_SECRET=replace-with-at-least-32-random-characters\nKEEP=value\n",
     );
   return directory;
 }
@@ -40,8 +40,16 @@ it("creates a secret once and preserves an existing environment without its temp
   expect(first.status, first.stderr).toBe(0);
   const file = path.join(directory, ".env");
   const bytes = fs.readFileSync(file, "utf8");
-  expect(bytes).toMatch(/^SESSION_SECRET=[A-Za-z0-9_-]{64}\nKEEP=value\n$/);
+  const password = bytes.match(/^POSTGRES_PASSWORD=([A-Za-z0-9_-]{43})$/m)?.[1];
+  expect(password).toBeDefined();
+  const url = new URL(bytes.match(/^DATABASE_URL=(.+)$/m)?.[1] ?? "");
+  expect(url.password).toBe(password);
+  expect(url.hostname).toBe("localhost");
+  expect(url.port).toBe("55439");
+  expect(bytes).toMatch(/^SESSION_SECRET=[A-Za-z0-9_-]{64}$/m);
+  expect(bytes).toContain("KEEP=value\n");
   expect(first.stdout).not.toContain(bytes.split("\n")[0].split("=")[1]);
+  expect(first.stdout).not.toContain(password);
   if (process.platform !== "win32")
     expect(fs.statSync(file).mode & 0o777).toBe(0o600);
   fs.unlinkSync(path.join(directory, ".env.example"));
@@ -98,6 +106,30 @@ it("does not create an empty environment when its template is missing", () => {
   expect(fs.existsSync(path.join(directory, ".env"))).toBe(false);
 });
 
+it("fails closed when the database credential fields are missing", () => {
+  const directory = fixture(false);
+  fs.writeFileSync(
+    path.join(directory, ".env.example"),
+    "BETTER_AUTH_SECRET=replace-with-at-least-32-random-characters\n",
+  );
+  expect(run(directory).status).toBe(1);
+  expect(fs.existsSync(path.join(directory, ".env"))).toBe(false);
+});
+
+it("generates a different database password for each new installation", () => {
+  const first = fixture();
+  const second = fixture();
+  expect(run(first).status).toBe(0);
+  expect(run(second).status).toBe(0);
+  const password = (directory: string) =>
+    fs
+      .readFileSync(path.join(directory, ".env"), "utf8")
+      .match(/^POSTGRES_PASSWORD=(.+)$/m)?.[1];
+  expect(password(first)).toMatch(/^[A-Za-z0-9_-]{43}$/);
+  expect(password(second)).toMatch(/^[A-Za-z0-9_-]{43}$/);
+  expect(password(first)).not.toBe(password(second));
+});
+
 it("preserves an existing directory or junction at the environment name", () => {
   const directory = fixture(false);
   const target = path.join(directory, "linked-directory");
@@ -131,9 +163,10 @@ it("concurrent setup invocations produce one complete environment", async () => 
     ),
   );
   expect(results).toEqual(Array(8).fill(0));
-  expect(fs.readFileSync(path.join(directory, ".env"), "utf8")).toMatch(
-    /^SESSION_SECRET=[A-Za-z0-9_-]{64}\nKEEP=value\n$/,
-  );
+  const content = fs.readFileSync(path.join(directory, ".env"), "utf8");
+  expect(content).toMatch(/^POSTGRES_PASSWORD=[A-Za-z0-9_-]{43}$/m);
+  expect(content).toMatch(/^SESSION_SECRET=[A-Za-z0-9_-]{64}$/m);
+  expect(content).toContain("KEEP=value\n");
 });
 
 it("a failed descriptor write never removes another writer's replacement", () => {

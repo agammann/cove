@@ -31,7 +31,7 @@ jobs:
       - name: Configure disposable test environment
         run: |
           node scripts/setup-env.mjs
-          node --input-type=module -e "import fs from 'node:fs'; fs.writeFileSync('.env',fs.readFileSync('.env','utf8').replace('postgresql://cove:cove-local-only@localhost:55439/cove','postgresql://cove:cove-ci-disposable@localhost:5432/cove'));"
+          node --input-type=module -e "import fs from 'node:fs'; const p='.env'; const s=fs.readFileSync(p,'utf8'); fs.writeFileSync(p,s.replace(/^DATABASE_URL=.*$/m,'DATABASE_URL=postgresql://cove:cove-ci-disposable@localhost:5432/cove'));"
       - run: pnpm db:migrate
       - run: pnpm lint
       - run: pnpm typecheck
@@ -158,7 +158,7 @@ jobs:
         working-directory: ${{ env.SOURCE_CONSUMER }}
         run: |
           node scripts/setup-env.mjs
-          node --input-type=module -e "import fs from 'node:fs'; fs.writeFileSync('.env',fs.readFileSync('.env','utf8').replace('postgresql://cove:cove-local-only@localhost:55439/cove','postgresql://cove:cove-ci-disposable@localhost:5432/cove'));"
+          node --input-type=module -e "import fs from 'node:fs'; const p='.env'; const s=fs.readFileSync(p,'utf8'); fs.writeFileSync(p,s.replace(/^DATABASE_URL=.*$/m,'DATABASE_URL=postgresql://cove:cove-ci-disposable@localhost:5432/cove'));"
       - name: Build and test the extracted PostgreSQL consumer
         working-directory: ${{ env.SOURCE_CONSUMER }}
         run: |

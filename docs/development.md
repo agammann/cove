@@ -34,7 +34,7 @@ pnpm build:local
 pnpm start
 ```
 
-The setup script creates `.env` with a random session secret and preserves an existing file. Compose starts PostgreSQL and Mailpit. Database data persists in the named `cove-data` volume. These defaults are for local development; see [operations](operations.md) for an independent production installation.
+The setup script creates `.env` with independent random session and PostgreSQL credentials and preserves an existing file. Compose reads the PostgreSQL password from that file. Database data persists in the named `cove-data` volume. These defaults are for local development; see [operations](operations.md) for an independent production installation.
 
 For a versioned source installation, download `cove_1.0.1_source.zip` and its `.sha256` file from the [GitHub release](https://github.com/agammann/cove/releases/tag/v1.0.1), verify the checksum as described in [v1 delivery](v1.md#source-release), and extract it. Open a terminal in `cove-1.0.1` and start with `pnpm install --frozen-lockfile` above. The archive includes source, locked dependencies, migrations, and documentation; install dependencies and build the local server on your machine.
 
@@ -43,6 +43,14 @@ Keep that terminal running and open `http://localhost:4317` on the same computer
 Create a project and follow the [first handoff walkthrough](getting-started.md#create-your-first-project). Local accounts are separate from the public app's ChatGPT accounts. There is no seeded administrator.
 
 To stop, press Ctrl+C in the server terminal and run `docker compose stop`. To return later, run `docker compose up -d --wait` and `pnpm start` if the local build is still present. Avoid `docker compose down -v`: it removes the database volume.
+
+### Rotate an existing local PostgreSQL password
+
+An existing `.env` and `cove-data` volume keep their previous password. Updating the source does not rotate either one. Stop the Cove app, keep the database available, and run `node scripts/backup-verify.mjs` with the current `.env` before changing credentials. Do not proceed if the backup verification fails.
+
+Generate a new password with `node -e "console.log(require('node:crypto').randomBytes(32).toString('base64url'))"`. Keep the value private. In `.env`, add `POSTGRES_PASSWORD=<new password>` and set `DATABASE_URL=postgresql://cove:<same new password>@localhost:55439/cove`. The generated alphabet is URL safe. Preserve all other settings and the existing volume.
+
+Run `docker compose up -d --no-recreate db`, then `docker compose exec db psql -U cove -d cove`. At the `psql` prompt, enter `\password cove` and provide the same new password twice. Exit with `\q`. The password prompts do not place the value in a shell command. Finish with `docker compose up -d --force-recreate --wait db` and `pnpm db:migrate`, then restart the app. If the migration cannot connect, check that both `.env` fields contain the same new value before retrying; keep the backup and volume intact.
 
 ## Edit the app
 
@@ -117,7 +125,7 @@ Run `node scripts/verify-sites-mcp.mjs` against the same local Worker to verify 
 | --- | --- |
 | Cannot connect to Docker | Start Docker's Linux engine, then rerun `docker compose up -d --wait`. |
 | Database connection refused | Check `docker compose ps` and `docker compose logs db`; confirm `.env` uses the local port 55439. |
-| Database password mismatch | An existing volume keeps its original credentials. Match `.env` to that installation instead of deleting the volume. |
+| Database password mismatch | An existing volume keeps its original credentials. Follow the local password rotation steps above; keep the volume intact. |
 | Sign in says email is unverified | Open Mailpit on port 8025 and follow the verification message. |
 | `dist/apps/api/main.js` is missing | Stop the server, run `pnpm build:local`, then `pnpm start`. |
 | The local page shows ChatGPT sign in | You have Sites frontend assets. Rebuild with `pnpm build:local`. |
