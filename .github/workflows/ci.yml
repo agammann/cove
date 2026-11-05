@@ -39,6 +39,8 @@ jobs:
       - run: pnpm build:local
       - run: pnpm exec playwright install --with-deps chromium
       - name: Run manual browser journey
+        env:
+          RATE_LIMIT: "10000"
         run: |
           pnpm start > /tmp/cove-server.log 2>&1 &
           node --input-type=module -e "for(let i=0;i<60;i++){try{const r=await fetch('http://localhost:4317/health/ready');if(r.ok)process.exit(0);}catch{}await new Promise(r=>setTimeout(r,1000));}process.exit(1);"
