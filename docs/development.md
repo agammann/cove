@@ -62,7 +62,16 @@ pnpm build:local
 pnpm exec playwright install chromium
 ```
 
-Start `pnpm start` in one terminal. In a second terminal, from the repository root, run:
+The browser journey makes many requests in one session. Stop the ordinary local server before running it, then start a disposable test server with `RATE_LIMIT=10000`. This changes only that test process; the application default remains 120 requests per minute and authentication keeps its separate limit.
+
+In PowerShell:
+
+```powershell
+$env:RATE_LIMIT = '10000'
+pnpm start
+```
+
+In a POSIX shell, use `RATE_LIMIT=10000 pnpm start`. Keep this test server running. In a second terminal, from the repository root, run:
 
 ```sh
 pnpm test:browser
@@ -72,7 +81,7 @@ pnpm audit --audit-level=moderate
 
 `pnpm test` includes PostgreSQL integration tests, so it needs a reachable database and permission to create disposable test databases. The default local development user has this permission. Those tests create uniquely named databases and remove only their own databases afterward.
 
-The browser suite expects the local app on port 4317 and Mailpit on port 8025. It creates synthetic accounts and exercises account deletion; a failed run may leave its test account for debugging. On Linux CI, install browser system dependencies with `pnpm exec playwright install --with-deps chromium`.
+The browser suite expects the local app on port 4317 and Mailpit on port 8025. It creates synthetic accounts and exercises account deletion; a failed run may leave its test account for debugging. Stop the test server afterward; in PowerShell, run `Remove-Item Env:RATE_LIMIT` in its terminal before starting an ordinary server again. On Linux CI, install browser system dependencies with `pnpm exec playwright install --with-deps chromium`.
 
 `pnpm check` runs lint, typechecking, all unit/integration tests, then the **Sites** build. It requires PostgreSQL for the tests and must be followed by `pnpm build:local` before starting the local server or its browser suite.
 
