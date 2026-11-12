@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.0.2
+
+- Update authentication, MCP, Fastify, Drizzle, validation, email and related dependencies, including upstream security fixes.
+- Refresh the Node 24 container image and development tooling.
+- Verify the extracted source package with a disposable PostgreSQL consumer, production server smoke test, browser journey and recovery checks.
+
 ## 1.0.1
 
 - Create local `.env` files exclusively so a concurrent setup never overwrites another process's environment.
