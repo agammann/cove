@@ -4,7 +4,7 @@
 
 - Update authentication, MCP, Fastify, Drizzle, validation, email and related dependencies, including upstream security fixes.
 - Refresh the Node 24 container image and development tooling.
-- Verify the extracted source package with a disposable PostgreSQL consumer, production server smoke test, browser journey and recovery checks.
+- Verify the extracted source package with a disposable PostgreSQL consumer and production server smoke test; run browser and recovery checks on the checkout.
 
 ## 1.0.1
 
