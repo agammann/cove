@@ -1,0 +1,18 @@
+# PostgreSQL 18 migration rehearsal
+
+This is a synthetic test of a logical dump and restore, not an upgrade of an existing installation. Cove's local and production Compose configurations still use PostgreSQL 17. Do not change an image tag against an existing data volume: PostgreSQL major versions have different on-disk formats and the official 18 image uses a different default data-directory layout.
+
+From a clean checkout without `.env`, with Node 24, the frozen dependencies and a local Docker engine, run `node scripts/rehearse-postgres-18.mjs`. The script creates randomly named containers and volumes, binds test database ports only to loopback, applies Cove's migrations, and inserts fictional owner, project, revision and security-ledger records. It dumps PostgreSQL 17, stops it, checks that a direct PostgreSQL 18 start against the old cluster fails, and restores the dump into a separate PostgreSQL 18 volume. It checks the records and migration state, makes a synthetic post-cutover write, and restarts the retained PostgreSQL 17 fixture to show that this later write is missing there. It stops its containers and leaves its uniquely named synthetic resources for inspection.
+
+The test does not establish a production cutover procedure. It does not exercise the operator's data, Compose project, role grants, extensions, collation, capacity, external backups, running workers, public services, or the independent security ledger. Its fixture has no application writers during the dump. It does not test recovery of changes made after switching to PostgreSQL 18.
+
+Before an operator can plan any real transition, they must:
+
+1. Identify the actual running Compose project, host, PostgreSQL container, image version, `PGDATA`, mount source and destination, and backup location for each installation. Local `compose.yaml` and production `compose.production.yaml` are distinct; custom project names, overrides, bind mounts, external volumes and remote databases require their own mappings. Never infer the active data source from a default name or create a replacement volume by guessing.
+2. Inventory roles, ownership, extensions, collation, application schema version, current data and storage requirements. Establish and verify an independent, current security-ledger export, including acknowledged revocations and deletions after any backup.
+3. Quiesce all application and external writers, take protected backups, and verify a separate isolated restore of the exact data and independent ledger. Record the recovery point, expected contents and operator-approved downtime before any cutover. A matching cluster ID or successful archive listing alone does not establish completeness.
+4. Rehearse a version-specific logical restore into a separately named PostgreSQL 18 target using the actual installation's roles, extensions, mappings and compatible application build. Validate migrations, content, permissions, auth, project and handoff operations, ledger reconciliation, backups and monitoring before redirecting traffic.
+5. Define an explicit rollback and reconciliation plan before allowing new writes. The retained PostgreSQL 17 volume represents the pre-cutover point: restarting it would omit every subsequent write, deletion and revocation. Stop writers and account for those changes, including the independently durable security ledger, before any rollback; do not reopen restored customer data if the latest ledger cannot be proven current.
+
+The existing operator and backup procedures in [operations.md](operations.md) remain authoritative. A real cutover requires installation-specific review and verified backups; this rehearsal neither performs nor authorizes it.
+
