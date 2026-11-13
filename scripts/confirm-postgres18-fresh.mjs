@@ -7,7 +7,7 @@ import { URL } from 'node:url';
 const mode = process.argv[2];
 if (!['local', 'production'].includes(mode) || process.argv.length !== 3)
   throw Error('Choose exactly local or production.');
-const selector = /^(DATABASE_URL|POSTGRES_PASSWORD|COVE_PG18_FRESH_INSTALL|COMPOSE_.*|DOCKER_HOST|DOCKER_CONTEXT|PG[A-Z_]*)$/i;
+const selector = /^(DATABASE_URL|POSTGRES_PASSWORD|COVE_DOMAIN|COVE_PG18_FRESH_INSTALL|COMPOSE_.*|DOCKER_HOST|DOCKER_CONTEXT|PG[A-Z_]*)$/i;
 for (const key of Object.keys(process.env)) {
   if (selector.test(key)) throw Error(`Unset ${key} before selecting the intended local project.`);
 }
@@ -16,7 +16,7 @@ if (['compose.override.yaml', 'compose.override.yml', 'docker-compose.override.y
 const environmentFile = mode === 'local' ? '.env' : '.env.production';
 process.loadEnvFile(environmentFile);
 for (const key of Object.keys(process.env)) {
-  if (selector.test(key) && !['DATABASE_URL', 'POSTGRES_PASSWORD'].includes(key))
+  if (selector.test(key) && !['DATABASE_URL', 'POSTGRES_PASSWORD', 'COVE_DOMAIN'].includes(key))
     throw Error(`Remove ${key} from the environment file before initialization.`);
 }
 let database;
@@ -29,6 +29,8 @@ if (!['postgres:', 'postgresql:'].includes(database.protocol) ||
     !/^[A-Za-z0-9_-]+$/.test(process.env.POSTGRES_PASSWORD ?? '') ||
     decodeURIComponent(database.password) !== process.env.POSTGRES_PASSWORD)
   throw Error('DATABASE_URL and POSTGRES_PASSWORD must identify the same default Cove database; use a reviewed procedure for custom credentials or mappings.');
+if (mode === 'production' && !process.env.COVE_DOMAIN?.trim())
+  throw Error('Set COVE_DOMAIN in the private production environment file.');
 function docker(args, options = {}) {
   const result = spawnSync('docker', args, { encoding: 'utf8', ...options });
   if (result.error || result.status !== 0) throw Error(`Docker command failed: ${result.error?.message ?? result.stderr ?? result.status}`);
