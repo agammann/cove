@@ -1,9 +1,8 @@
 // Create a new local backup only after checking that the app and Compose use
 // the same PostgreSQL cluster. This never overwrites an existing path.
-import { closeSync, createReadStream, existsSync, fstatSync, fsyncSync, openSync } from 'node:fs';
+import { closeSync, existsSync, fstatSync, fsyncSync, openSync, readSync } from 'node:fs';
 import { isAbsolute } from 'node:path';
 import { spawn, spawnSync } from 'node:child_process';
-import { pipeline } from 'node:stream/promises';
 import { URL } from 'node:url';
 import { Pool } from 'pg';
 
@@ -62,13 +61,39 @@ try {
     child.once('error', () => resolve(false));
     child.once('close', code => resolve(code === 0));
   });
-  let streamFailed = false;
-  try { await pipeline(createReadStream(null, { fd, start: 0, autoClose: false }), child.stdin); }
-  catch { streamFailed = true; child.kill(); }
-  if (!(await exited) || streamFailed) throw new Error('Archive listing failed.');
+  // pg_restore --list can exit after the table of contents, before consuming
+  // the data payload. Read from the original descriptor in bounded chunks;
+  // only an early pipe closure coupled with a successful exit is acceptable.
+  let inputError;
+  let writeError;
+  let readError;
+  child.stdin.on('error', error => { inputError ??= error; });
+  const buffer = Buffer.alloc(65536);
+  let position = 0;
+  for (;;) {
+    let size;
+    try { size = readSync(fd, buffer, 0, buffer.length, position); }
+    catch (error) { readError = error; child.kill(); break; }
+    if (size === 0) { child.stdin.end(); break; }
+    position += size;
+    try { await new Promise((resolve, reject) => child.stdin.write(buffer.subarray(0, size), error => error ? reject(error) : resolve())); }
+    catch (error) {
+      writeError = error;
+      if (!['EPIPE', 'EOF', 'ERR_STREAM_DESTROYED'].includes(error.code)) child.kill();
+      break;
+    }
+  }
+  const listed = await exited;
+  const closed = error => error && ['EPIPE', 'EOF'].includes(error.code);
+  const earlyPipe = closed(inputError) || closed(writeError);
+  if (!listed || readError || (inputError && !closed(inputError)) ||
+      (writeError && !closed(writeError) && !(writeError.code === 'ERR_STREAM_DESTROYED' && earlyPipe))) {
+    throw new Error('Archive listing failed.');
+  }
   complete = true;
 } finally {
   closeSync(fd);
   if (!complete) console.error('Backup did not complete. The newly created file was left for inspection and must not be used.');
 }
 console.log('Backup created and its archive directory is readable. Verify a restore in an isolated database before rotating credentials.');
+
