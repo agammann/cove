@@ -103,6 +103,9 @@ jobs:
           NODE
       - name: Verify the exclusive local backup
         run: |
+          # Incompressible synthetic data exceeds pipe buffers: pg_restore --list
+          # may close its input after the TOC without consuming the whole archive.
+          docker compose exec -T db psql -U cove -d cove -v ON_ERROR_STOP=1 -c "CREATE TABLE cove_large_backup_fixture AS SELECT i, md5(i::text) || md5((i + 2000000)::text) AS payload FROM generate_series(1, 500000) AS i"
           backup="$RUNNER_TEMP/cove-local-backup-fixture.dump"
           node scripts/backup-local.mjs "$backup"
           before=$(sha256sum "$backup")
@@ -111,6 +114,7 @@ jobs:
           docker compose exec -T db createdb -U cove cove_backup_fixture
           docker compose exec -T db pg_restore -U cove -d cove_backup_fixture --exit-on-error --no-owner < "$backup"
           test "$(docker compose exec -T db psql -U cove -d cove_backup_fixture -Atc "SELECT count(*) FROM projects WHERE name='Recovery fixture'")" = 1
+          test "$(docker compose exec -T db psql -U cove -d cove_backup_fixture -Atc 'SELECT count(*) FROM cove_large_backup_fixture')" = 500000
       - run: node scripts/backup-verify.mjs
       - run: docker build -t cove:1.0.2 .
       - run: node scripts/verify-container.mjs
