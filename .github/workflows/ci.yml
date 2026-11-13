@@ -197,6 +197,17 @@ jobs:
             release-artifacts/cove_*_source.zip.sha256
           if-no-files-found: error
           overwrite: true
+  caddy-validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Validate the pinned production proxy configuration
+        run: |
+          image=$(sed -n 's/^    image: \(caddy:.*\)$/\1/p' compose.production.yaml)
+          test -n "$image"
+          docker run --rm -e COVE_DOMAIN=cove.example.test -v "$GITHUB_WORKSPACE/Caddyfile:/etc/caddy/Caddyfile:ro" "$image" caddy validate --config /etc/caddy/Caddyfile --adapter caddyfile
   artifact-transfer:
     needs: [verify, recovery, source]
     runs-on: ubuntu-latest
@@ -258,7 +269,7 @@ jobs:
         run: exit 1
   publish:
     name: Publish verified source release
-    needs: [verify, recovery, source, artifact-transfer, artifact-missing-guard]
+    needs: [verify, recovery, source, caddy-validate, artifact-transfer, artifact-missing-guard]
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     permissions:
