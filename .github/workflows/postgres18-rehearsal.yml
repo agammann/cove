@@ -3,6 +3,11 @@ on:
   workflow_dispatch:
   pull_request:
     paths:
+      - compose.yaml
+      - compose.production.yaml
+      - compose.postgres18-init.yaml
+      - deploy/postgres18-guard.sh
+      - deploy/postgres18-ready.sh
       - scripts/rehearse-postgres-18.mjs
       - docs/postgres18-rehearsal.md
       - .github/workflows/postgres18-rehearsal.yml
