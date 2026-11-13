@@ -21,7 +21,7 @@ function check(mode, answer, extra = {}, file = '') {
   const environment = `DATABASE_URL=postgresql://cove:synthetic-only@${host}/cove\nPOSTGRES_PASSWORD=synthetic-only\nCOVE_DOMAIN=fixture.invalid\n` + file;
   writeFileSync(join(dir, mode === 'local' ? '.env' : '.env.production'), environment);
   const clean = { ...process.env };
-  for (const k of Object.keys(clean)) if (/^(DATABASE_URL|POSTGRES_PASSWORD|COVE_DOMAIN|COVE_PG18_FRESH_INSTALL|COMPOSE_.*|DOCKER_HOST|DOCKER_CONTEXT|PG[A-Z_]*)$/i.test(k)) delete clean[k];
+  for (const k of Object.keys(clean)) if (/^(DATABASE_URL|POSTGRES_PASSWORD|COVE_DOMAIN|COVE_PG18_FRESH_INSTALL|COMPOSE_.*|DOCKER_.*|PG[A-Z_]*)$/i.test(k)) delete clean[k];
   const r = spawnSync(process.execPath, [script, mode], { cwd: dir, input: answer + '\n', encoding: 'utf8', timeout: 10000,
     env: { ...clean, PATH: dir + delimiter + clean.PATH, COVE_MOCK_LOG: log, ...extra } });
   return { ...r, calls: readFileSync(log, 'utf8') };
@@ -32,8 +32,10 @@ for (const mode of ['local', 'production']) {
     check(mode, 'NO EXISTING COVE DATABASE', { COVE_MOCK_EXISTING: '{"ID":"existing"}' }),
     check(mode, 'NO EXISTING COVE DATABASE', { COMPOSE_FILE: 'unexpected' }),
     check(mode, 'NO EXISTING COVE DATABASE', { COVE_DOMAIN: 'wrong.example' }),
+    check(mode, 'NO EXISTING COVE DATABASE', { DOCKER_CONFIG: '/unexpected' }),
     check(mode, 'NO EXISTING COVE DATABASE', { COVE_MOCK_HOST: 'tcp://fixture.invalid:2375' }),
     check(mode, 'NO EXISTING COVE DATABASE', {}, 'PGHOST=unexpected\n'),
+    check(mode, 'NO EXISTING COVE DATABASE', {}, 'DOCKER_CONFIG=/unexpected\n'),
     check(mode, 'NO EXISTING COVE DATABASE', {}, 'POSTGRES_PASSWORD=mismatch\n'),
   ]) {
     assert.notEqual(failure.status, 0);

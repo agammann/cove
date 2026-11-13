@@ -10,7 +10,7 @@ import { setTimeout as delay } from 'node:timers/promises';
 const prefix = 'covepg18test' + randomBytes(8).toString('hex');
 const env = { ...process.env, POSTGRES_PASSWORD: 'synthetic-only', COVE_DOMAIN: 'fixture.invalid',
   COVE_PG18_FRESH_INSTALL: 'confirmed-no-existing-cove-database' };
-for (const k of Object.keys(env)) if (/^(COMPOSE_|DOCKER_HOST$|DOCKER_CONTEXT$|PG[A-Z_]*)/i.test(k)) delete env[k];
+for (const k of Object.keys(env)) if (/^(COMPOSE_|DOCKER_|PG[A-Z_]*)/i.test(k)) delete env[k];
 const containers = [];
 function docker(args, options = {}) {
   const r = spawnSync('docker', args, { env, encoding: 'utf8', timeout: 120000, ...options });
