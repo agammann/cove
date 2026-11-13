@@ -1,0 +1,31 @@
+name: PostgreSQL 18 synthetic rehearsal
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - scripts/rehearse-postgres-18.mjs
+      - docs/postgres18-rehearsal.md
+      - .github/workflows/postgres18-rehearsal.yml
+      - packages/database/migrations/**
+      - packages/database/migrate.ts
+      - packages/database/db.ts
+      - package.json
+      - pnpm-workspace.yaml
+      - pnpm-lock.yaml
+permissions:
+  contents: read
+jobs:
+  rehearsal:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: '24'
+      - run: npm install --global pnpm@11.19.0
+      - run: pnpm install --frozen-lockfile
+      - run: node scripts/rehearse-postgres-18.mjs
+
