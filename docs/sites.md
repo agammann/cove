@@ -26,6 +26,8 @@ The checked in `.openai/hosting.json` contains the Site identity and logical `DB
 
 Run `pnpm build` for Sites. It removes only the verified generated `dist` directory, creates the Worker and client assets, and copies the manifest and migrations. Local Wrangler configuration and SQLite state live under ignored `.sites-runtime`, outside the deployment output. Run `pnpm build:local` for the original Fastify/PostgreSQL distribution.
 
+The local Wrangler fixture pins its compatibility date to `2026-05-15`. The installed Workers types satisfy Wrangler's dependency range but describe a later runtime; type-checking alone does not establish that a newer API is available on the pinned fixture or the hosted platform. Verify any new Workers API against the actual compatibility date and runtime before relying on it.
+
 For a local Sites fixture, follow the exact migration, server, and browser commands in [Build and check Sites](development.md#build-and-check-sites). `node scripts/verify-sites-browser.mjs` checks that fixture and deletes its synthetic account. Never run its synthetic identity flow against a public deployment.
 
 ## Verification on September 13, 2026
