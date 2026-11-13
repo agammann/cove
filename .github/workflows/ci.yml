@@ -90,6 +90,7 @@ jobs:
           node-version: "24"
       - run: npm install --global pnpm@11.19.0
       - run: pnpm install --frozen-lockfile
+      - run: node scripts/test-backup-selectors.mjs
       - run: node scripts/setup-env.mjs
       - name: Initialize the disposable PostgreSQL 18 fixture
         env:

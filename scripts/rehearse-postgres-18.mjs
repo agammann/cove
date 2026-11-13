@@ -7,7 +7,7 @@ import { setTimeout as delay } from 'node:timers/promises';
 
 // Only randomly named test resources and fictional records are used.
 if (existsSync('.env')) throw new Error('Run only from a clean checkout without .env.');
-if (Object.keys(process.env).some(key => /^(DOCKER_HOST|DOCKER_CONTEXT|PG[A-Z_]*)$/i.test(key))) {
+if (Object.keys(process.env).some(key => /^(DOCKER_.*|PG[A-Z_]*)$/i.test(key))) {
   throw new Error('Unset inherited Docker and PostgreSQL selectors first.');
 }
 const suffix = randomBytes(8).toString('hex');

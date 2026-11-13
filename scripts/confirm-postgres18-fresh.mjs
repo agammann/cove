@@ -7,7 +7,7 @@ import { URL } from 'node:url';
 const mode = process.argv[2];
 if (!['local', 'production'].includes(mode) || process.argv.length !== 3)
   throw Error('Choose exactly local or production.');
-const selector = /^(DATABASE_URL|POSTGRES_PASSWORD|COVE_DOMAIN|COVE_PG18_FRESH_INSTALL|COMPOSE_.*|DOCKER_HOST|DOCKER_CONTEXT|PG[A-Z_]*)$/i;
+const selector = /^(DATABASE_URL|POSTGRES_PASSWORD|COVE_DOMAIN|COVE_PG18_FRESH_INSTALL|COMPOSE_.*|DOCKER_.*|PG[A-Z_]*)$/i;
 for (const key of Object.keys(process.env)) {
   if (selector.test(key)) throw Error(`Unset ${key} before selecting the intended local project.`);
 }

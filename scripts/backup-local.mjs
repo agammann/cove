@@ -12,11 +12,11 @@ if ((process.argv.length !== 3 && process.argv.length !== 5) || !destination || 
     !/^[a-z0-9][a-z0-9_-]*$/.test(project) || (process.argv.length === 5 && process.argv[3] !== '--project')) {
   throw new Error('Give an absolute path for a new backup and, optionally, --project NAME.');
 }
-const unsafe = Object.keys(process.env).filter(key => /^(DATABASE_URL|POSTGRES_PASSWORD|DOCKER_HOST|DOCKER_CONTEXT|COMPOSE_.*|PG[A-Z_]*)$/i.test(key));
+const unsafe = Object.keys(process.env).filter(key => /^(DATABASE_URL|POSTGRES_PASSWORD|DOCKER_.*|COMPOSE_.*|PG[A-Z_]*)$/i.test(key));
 if (unsafe.length) throw new Error('Unset inherited database, Docker context, Compose and PostgreSQL variables before using this helper.');
 if (['compose.override.yaml', 'compose.override.yml', 'docker-compose.override.yaml', 'docker-compose.override.yml'].some(existsSync)) throw new Error('Compose overrides need a tailored backup procedure.');
 process.loadEnvFile('.env');
-if (Object.keys(process.env).some(key => /^(DOCKER_HOST|DOCKER_CONTEXT|COMPOSE_.*|PG[A-Z_]*)$/i.test(key))) throw new Error('Remove Docker context, Compose and PostgreSQL selectors from .env before using this helper.');
+if (Object.keys(process.env).some(key => /^(DOCKER_.*|COMPOSE_.*|PG[A-Z_]*)$/i.test(key))) throw new Error('Remove Docker, Compose and PostgreSQL selectors from .env before using this helper.');
 const url = new URL(process.env.DATABASE_URL ?? '');
 if (!['postgres:', 'postgresql:'].includes(url.protocol) ||
     !['localhost', '127.0.0.1'].includes(url.hostname) ||
