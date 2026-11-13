@@ -1,8 +1,9 @@
 // Create a new local backup only after checking that the app and Compose use
 // the same PostgreSQL cluster. This never overwrites an existing path.
-import { closeSync, existsSync, fstatSync, fsyncSync, openSync } from 'node:fs';
+import { closeSync, createReadStream, existsSync, fstatSync, fsyncSync, openSync } from 'node:fs';
 import { isAbsolute } from 'node:path';
-import { spawnSync } from 'node:child_process';
+import { spawn, spawnSync } from 'node:child_process';
+import { pipeline } from 'node:stream/promises';
 import { URL } from 'node:url';
 import { Pool } from 'pg';
 
@@ -42,7 +43,7 @@ const appCluster = async () => {
   finally { await pool.end(); }
 };
 const composeCluster = () => docker(compose(['exec', '-T', 'db', 'psql', '-U', 'cove', '-d', 'cove', '-Atc', 'SELECT system_identifier::text FROM pg_control_system()']), { encoding: 'utf8' }).stdout.trim();
-const fd = openSync(destination, 'wx', 0o600);
+const fd = openSync(destination, 'wx+', 0o600);
 let complete = false;
 try {
   verifyEndpoint();
@@ -53,16 +54,21 @@ try {
   if (fstatSync(fd).size === 0) throw new Error('Backup is empty.');
   verifyEndpoint();
   if (await appCluster() !== systemId || composeCluster() !== systemId) throw new Error('Database mapping changed during backup.');
+  // Read the already-open file from offset zero: reopening its path could
+  // validate a different file if the destination were replaced meanwhile.
+  const child = spawn('docker', compose(['exec', '-T', 'db', 'pg_restore', '--list']), { windowsHide: true, stdio: ['pipe', 'ignore', 'pipe'] });
+  child.stderr.resume();
+  const exited = new Promise(resolve => {
+    child.once('error', () => resolve(false));
+    child.once('close', code => resolve(code === 0));
+  });
+  let streamFailed = false;
+  try { await pipeline(createReadStream(null, { fd, start: 0, autoClose: false }), child.stdin); }
+  catch { streamFailed = true; child.kill(); }
+  if (!(await exited) || streamFailed) throw new Error('Archive listing failed.');
   complete = true;
 } finally {
   closeSync(fd);
   if (!complete) console.error('Backup did not complete. The newly created file was left for inspection and must not be used.');
 }
-const input = openSync(destination, 'r');
-try {
-  docker(compose(['exec', '-T', 'db', 'pg_restore', '--list']), { stdio: [input, 'ignore', 'pipe'] });
-} catch (error) {
-  console.error('Archive listing failed. The file was left for inspection and must not be used.');
-  throw error;
-} finally { closeSync(input); }
 console.log('Backup created and its archive directory is readable. Verify a restore in an isolated database before rotating credentials.');
