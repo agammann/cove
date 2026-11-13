@@ -3,10 +3,22 @@ import { spawn } from "node:child_process";
 import { randomBytes } from "node:crypto";
 import { writeFile, unlink } from "node:fs/promises";
 import { setTimeout as delay } from "node:timers/promises";
+import { URL } from "node:url";
 const suffix = Date.now();
 const database = `cove_container_${suffix}`;
 const container = `cove-smoke-${suffix}`;
 const envFile = `.env.container-${suffix}`;
+process.loadEnvFile(".env");
+const localUrl = new URL(process.env.DATABASE_URL ?? "");
+if (
+  !["localhost", "127.0.0.1"].includes(localUrl.hostname) ||
+  localUrl.port !== "55439"
+)
+  throw new Error("Container verification requires the local Cove database");
+const containerUrl = new URL(localUrl);
+containerUrl.hostname = "db";
+containerUrl.port = "5432";
+containerUrl.pathname = `/${database}`;
 const run = (args, allowFailure = false) =>
   new Promise((resolve, reject) => {
     const child = spawn("docker", args, {
@@ -33,7 +45,7 @@ try {
       "NODE_ENV=production",
       "PORT=4317",
       "APP_URL=https://cove-smoke.example.test",
-      `DATABASE_URL=postgresql://cove:cove-local-only@db:5432/${database}`,
+      `DATABASE_URL=${containerUrl.href}`,
       `BETTER_AUTH_SECRET=${randomBytes(48).toString("base64url")}`,
       "SMTP_HOST=mail",
       "SMTP_PORT=1025",

@@ -4,7 +4,7 @@ services:
     image: postgres:17.6-alpine
     environment:
       POSTGRES_USER: cove
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-cove-local-only}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Run node scripts/setup-env.mjs first}
       POSTGRES_DB: cove
     ports: ["127.0.0.1:55439:5432"]
     volumes: ["cove-data:/var/lib/postgresql/data"]

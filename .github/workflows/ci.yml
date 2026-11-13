@@ -31,7 +31,7 @@ jobs:
       - name: Configure disposable test environment
         run: |
           node scripts/setup-env.mjs
-          node --input-type=module -e "import fs from 'node:fs'; fs.writeFileSync('.env',fs.readFileSync('.env','utf8').replace('postgresql://cove:cove-local-only@localhost:55439/cove','postgresql://cove:cove-ci-disposable@localhost:5432/cove'));"
+          node --input-type=module -e "import fs from 'node:fs'; const p='.env'; const s=fs.readFileSync(p,'utf8'); fs.writeFileSync(p,s.replace(/^DATABASE_URL=.*$/m,'DATABASE_URL=postgresql://cove:cove-ci-disposable@localhost:5432/cove'));"
       - run: pnpm db:migrate
       - run: pnpm lint
       - run: pnpm typecheck
@@ -101,6 +101,20 @@ jobs:
             await service.saveConnection(actor,{clientId:'recovery-fixture',label:'Recovery fixture',grants:[{projectId:project.id,capabilities:['read']}]});
           } finally { await pool.end(); }
           NODE
+      - name: Verify the exclusive local backup
+        run: |
+          # Incompressible synthetic data exceeds pipe buffers: pg_restore --list
+          # may close its input after the TOC without consuming the whole archive.
+          docker compose exec -T db psql -U cove -d cove -v ON_ERROR_STOP=1 -c "CREATE TABLE cove_large_backup_fixture AS SELECT i, md5(i::text) || md5((i + 2000000)::text) AS payload FROM generate_series(1, 500000) AS i"
+          backup="$RUNNER_TEMP/cove-local-backup-fixture.dump"
+          node scripts/backup-local.mjs "$backup"
+          before=$(sha256sum "$backup")
+          if node scripts/backup-local.mjs "$backup"; then echo 'Existing backup was overwritten' >&2; exit 1; fi
+          test "$before" = "$(sha256sum "$backup")"
+          docker compose exec -T db createdb -U cove cove_backup_fixture
+          docker compose exec -T db pg_restore -U cove -d cove_backup_fixture --exit-on-error --no-owner < "$backup"
+          test "$(docker compose exec -T db psql -U cove -d cove_backup_fixture -Atc "SELECT count(*) FROM projects WHERE name='Recovery fixture'")" = 1
+          test "$(docker compose exec -T db psql -U cove -d cove_backup_fixture -Atc 'SELECT count(*) FROM cove_large_backup_fixture')" = 500000
       - run: node scripts/backup-verify.mjs
       - run: docker build -t cove:1.0.2 .
       - run: node scripts/verify-container.mjs
@@ -160,7 +174,7 @@ jobs:
         working-directory: ${{ env.SOURCE_CONSUMER }}
         run: |
           node scripts/setup-env.mjs
-          node --input-type=module -e "import fs from 'node:fs'; fs.writeFileSync('.env',fs.readFileSync('.env','utf8').replace('postgresql://cove:cove-local-only@localhost:55439/cove','postgresql://cove:cove-ci-disposable@localhost:5432/cove'));"
+          node --input-type=module -e "import fs from 'node:fs'; const p='.env'; const s=fs.readFileSync(p,'utf8'); fs.writeFileSync(p,s.replace(/^DATABASE_URL=.*$/m,'DATABASE_URL=postgresql://cove:cove-ci-disposable@localhost:5432/cove'));"
       - name: Build and test the extracted PostgreSQL consumer
         working-directory: ${{ env.SOURCE_CONSUMER }}
         run: |
@@ -208,3 +222,4 @@ jobs:
             const { resolve } = require('node:path');
             const { default: publish } = await import(pathToFileURL(resolve('scripts/release.mjs')).href);
             await publish({ github, context, core });
+
