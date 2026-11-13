@@ -1,0 +1,5 @@
+services:
+  db:
+    entrypoint: ["sh", "/cove/postgres18-guard.sh", "initialize"]
+    environment:
+      COVE_PG18_FRESH_INSTALL: ${COVE_PG18_FRESH_INSTALL:?Confirm this is a fresh installation as documented}

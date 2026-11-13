@@ -1,15 +1,21 @@
 name: cove
 services:
   db:
-    image: postgres:17.6-alpine
+    image: postgres:18.4-alpine
+    entrypoint: ["sh", "/cove/postgres18-guard.sh", "start"]
+    command: ["postgres"]
     environment:
       POSTGRES_USER: cove
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Run node scripts/setup-env.mjs first}
       POSTGRES_DB: cove
     ports: ["127.0.0.1:55439:5432"]
-    volumes: ["cove-data:/var/lib/postgresql/data"]
+    volumes:
+      - "cove-data:/cove/legacy:ro"
+      - "cove-data-18:/var/lib/postgresql"
+      - "./deploy/postgres18-guard.sh:/cove/postgres18-guard.sh:ro"
+      - "./deploy/postgres18-ready.sh:/docker-entrypoint-initdb.d/zz-cove-ready.sh:ro"
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U cove -d cove"]
+      test: ["CMD-SHELL", "test -f /var/lib/postgresql/18/docker/.cove-init-complete && pg_isready -h 127.0.0.1 -U cove -d cove"]
       interval: 5s
       timeout: 3s
       retries: 20
@@ -18,4 +24,5 @@ services:
     ports: ["127.0.0.1:1025:1025", "127.0.0.1:8025:8025"]
 volumes:
   cove-data:
+  cove-data-18:
 

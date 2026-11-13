@@ -4,7 +4,7 @@ These procedures apply to an independently operated Fastify/PostgreSQL installat
 
 ## Supported initial topology
 
-One small Linux host with Docker Compose, one Node 24 API container, one PostgreSQL 17 database, and Caddy terminating HTTPS. Budget at least 2 vCPU, 4 GiB RAM and 20 GiB persistent disk for an early-access installation with modest concurrency. These are starting assumptions, not load-test results. Use an external authenticated SMTP service and encrypted off-host backups. Do not expose PostgreSQL to the public network.
+One small Linux host with Docker Compose, one Node 24 API container, one PostgreSQL 18 database for a confirmed fresh installation, and Caddy terminating HTTPS. Existing PostgreSQL 17 installations need a separately reviewed migration, not a tag change. Budget at least 2 vCPU, 4 GiB RAM and 20 GiB persistent disk for an early-access installation with modest concurrency. These are starting assumptions, not load-test results. Use an external authenticated SMTP service and encrypted off-host backups. Do not expose PostgreSQL to the public network.
 
 `compose.yaml` is local-only. `compose.production.yaml` is a separate configuration, not an overlay; never combine them accidentally. No service purchase, domain change, public tunnel, or deployment is included in repository publication.
 
@@ -12,17 +12,19 @@ One small Linux host with Docker Compose, one Node 24 API container, one Postgre
 
 1. Obtain explicit operator approval for the target host, domain, public service exposure, and any billable resources.
 2. Create `.env.production` from `.env.example` outside Git. Set `NODE_ENV=production`, `PORT=4317`, `APP_URL=https://approved-domain`, a random `BETTER_AUTH_SECRET`, `DATABASE_URL=postgresql://cove:URL_ENCODED_PASSWORD@db:5432/cove`, and authenticated SMTP settings. Use `SMTP_SECURE=true` for implicit TLS port 465, or port 587 for STARTTLS. Keep credentials out of shell history and logs.
-3. Supply Compose interpolation values `POSTGRES_PASSWORD` and `COVE_DOMAIN` securely in the process environment or an untracked Compose env file. They must agree with the application environment. Install DNS only for the approved host.
-4. Build and migrate before opening ingress:
+3. Put `POSTGRES_PASSWORD` and `COVE_DOMAIN` in the private `.env.production` file; the database password must match `DATABASE_URL`. The fresh helper requires a URL-safe alphanumeric, underscore or hyphen password and the default `db:5432/cove` mapping. Custom mappings need their own reviewed procedure. Install DNS only for the approved host.
+4. This command is **only for a confirmed fresh installation**. First inventory all existing Cove hosts, projects, volume mappings, backups and independent security ledgers, and stop potential writers and storage changes. If any existing database may contain data, preserve it and follow a separate reviewed migration plan. For a fresh installation, initialize, build and migrate before opening ingress:
 
 ```sh
-docker compose -f compose.production.yaml build api
-docker compose -f compose.production.yaml up -d db
-docker compose -f compose.production.yaml run --rm api node dist/packages/database/migrate.js
-docker compose -f compose.production.yaml up -d api proxy
+node scripts/confirm-postgres18-fresh.mjs production
+docker compose -p cove-production --env-file .env.production -f compose.production.yaml build api
+docker compose -p cove-production --env-file .env.production -f compose.production.yaml run --rm api node dist/packages/database/migrate.js
+docker compose -p cove-production --env-file .env.production -f compose.production.yaml up -d api proxy
 ```
 
 5. Verify live/readiness, email delivery, sign-up/recovery, OAuth discovery and PKCE, project isolation, a save/handoff/copy flow, two independent connections, revocation, and a restart on this deployment. Record the exact image/commit and date. A successful container build alone is not deployment verification.
+
+The initialization helper is only for a confirmed fresh installation. Inventory the actual host, projects, volume mappings, overrides, backups and independent security ledger first, and stop all potential writers and storage changes. The guard sees only the selected default legacy `database` volume; it cannot discover an external or custom installation. It preserves that volume read-only and refuses it if populated. A separate `database-18` volume holds the new cluster. If initialization is interrupted, preserve both volumes and investigate; do not remove the attempt record or retry as fresh. Existing installations must remain on their previous revision and follow an installation-specific plan, including current independent deletion and revocation ledger reconciliation, before any cutover or restore. See [the synthetic rehearsal](postgres18-rehearsal.md).
 
 Caddy 2.11.9 limits request headers to 16 KiB, drops header names containing dots or underscores, and closes a request-body read or response write that makes no progress for one minute. Assess unusually large headers, dot- or underscore-named headers, and stalled transfers for the target deployment before upgrading; tune Caddy server options only for a documented operational need. A local proxy test does not verify a public certificate, DNS, or the deployed service.
 

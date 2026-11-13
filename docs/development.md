@@ -21,6 +21,8 @@ Both builds use `dist`. Stop the running server before switching builds, then re
 
 Install Git, Node.js 24, pnpm 11.19.0, and Docker with Compose and a running Linux container engine. Use `node --version`, `pnpm --version`, and `docker compose version` to check your tools. Ports 4317, 55439, 1025, and 8025 must be available.
 
+The following commands are **only for a fresh installation**. Before running them, identify all existing Cove hosts, projects, volume mappings, backups and independent security ledgers. Stop potential writers and storage changes. If an existing database may contain data, preserve it and follow a separately reviewed migration plan; do not initialize a replacement.
+
 Run these commands in a terminal:
 
 ```sh
@@ -28,13 +30,14 @@ git clone https://github.com/agammann/cove.git
 cd cove
 pnpm install --frozen-lockfile
 node scripts/setup-env.mjs
-docker compose up -d --wait
+node scripts/confirm-postgres18-fresh.mjs local
+docker compose -p cove up -d --wait mail
 pnpm db:migrate
 pnpm build:local
 pnpm start
 ```
 
-The setup script creates `.env` with independent random session and PostgreSQL credentials and preserves an existing file. Compose reads the PostgreSQL password from that file. Database data persists in the named `cove-data` volume. These defaults are for local development; see [operations](operations.md) for an independent production installation.
+The setup script creates `.env` with independent random session and PostgreSQL credentials and preserves an existing file. For this checkout, the helper initializes a separate PostgreSQL 18 volume only after an explicit confirmation that this is a fresh installation. It validates that the default local URL and password match, checks the local Docker project, and refuses a populated legacy volume or nonempty target. It cannot discover a custom project, bind mount, external volume, remote database or an independent security ledger. First inventory those sources and stop all possible writers and storage changes. If any Cove database may contain data, keep its existing source, mapping, credentials and verified backups and use an installation-specific migration plan; do not initialize a new database as a substitute. Data for a confirmed fresh setup persists in `cove-data-18`; the old `cove-data` volume is mounted read-only and retained. See [the migration rehearsal](postgres18-rehearsal.md) and [operations](operations.md).
 
 The commands and credential behavior above describe this checkout. The published [v1.0.2 source archive](https://github.com/agammann/cove/releases/tag/v1.0.2) predates the generated database credential. Verify its checksum as described in [v1 delivery](v1.md#source-release), extract it, and follow the documentation included in that archive. No new release is implied by these checkout instructions.
 
@@ -42,11 +45,13 @@ Keep that terminal running and open `http://localhost:4317` on the same computer
 
 Create a project and follow the [first handoff walkthrough](getting-started.md#create-your-first-project). Local accounts are separate from the public app's ChatGPT accounts. There is no seeded administrator.
 
-To stop, press Ctrl+C in the server terminal and run `docker compose stop`. To return later, run `docker compose up -d --wait` and `pnpm start` if the local build is still present. Avoid `docker compose down -v`: it removes the database volume.
+To stop, press Ctrl+C in the server terminal and run `docker compose -p cove stop`. To return later, run `docker compose -p cove up -d --wait` and `pnpm start` if the local build is still present. Avoid `docker compose down -v`: it removes database volumes.
+
+If fresh initialization is interrupted, preserve both volumes and logs; do not remove the attempt record or retry the fresh command. If initialization finished before the helper was interrupted, normal startup checks the cluster identifier and completion marker. A missing marker or populated legacy volume blocks startup and requires an installation-specific review. The marker is not proof of complete data or a backup.
 
 ### Rotate an existing local PostgreSQL password
 
-An existing `.env` and `cove-data` volume keep their previous password. Updating the source does not rotate either one. These steps are for the default local Compose project and its loopback database; if you use a different project name, external volume, bind mount, remote database, or Compose override, first identify the actual database and use a tailored procedure. Never run these commands against the production Compose project.
+An existing PostgreSQL 17 `.env` and `cove-data` volume keep their previous password. Updating the source does not rotate either one. **All commands in this subsection must be run from the previous PostgreSQL 17 checkout and its matching Compose file**, not from this PostgreSQL 18 checkout. These steps are for the default local Compose project and its loopback database; if you use a different project name, external volume, bind mount, remote database, or Compose override, first identify the actual database and use a tailored procedure. Never run these commands against the production Compose project.
 
 Stop the Cove app and all other database writers. Before any Compose command, ensure inherited `DATABASE_URL`, `POSTGRES_PASSWORD`, `DOCKER_HOST`, `DOCKER_CONTEXT`, all `COMPOSE_*` variables and all `PG*` variables are unset for this terminal throughout the procedure. Remove such Docker, Compose and PostgreSQL selectors from `.env` as well. Do not use an automatic Compose override file. Check `docker context inspect --format '{{json .Endpoints.docker.Host}}'`: proceed only with a local `unix://` or `npipe://` endpoint, never a remote Docker context.
 
@@ -57,6 +62,8 @@ Create a new private backup at an absolute path that does not already exist, for
 Generate a new password with `node -e "console.log(require('node:crypto').randomBytes(32).toString('base64url'))"` and retain it privately until the change is complete. Run `docker compose -p cove exec db psql -U cove -d cove`. At the `psql` prompt, enter `\password cove` and provide the new password twice, then exit with `\q`. Update both `POSTGRES_PASSWORD` and the password portion of `DATABASE_URL` in `.env` to that same value; the generated alphabet is URL safe. Run `docker compose -p cove up -d --force-recreate --wait db`, then verify the app can connect before restarting other writers. Keep the old environment copy and verified backup until the change has been confirmed.
 
 If interrupted or the new connection fails, keep writers stopped. The database role may have changed even if `.env` has not. Restore the private old environment copy to `.env` and add its old database password as `POSTGRES_PASSWORD` so Compose can address the existing service; this edit does not change the role. Confirm the expected existing volume and project again, then, if needed, start the existing database with `docker compose -p cove up -d --no-recreate --wait db`. Open `docker compose -p cove exec db psql -U cove -d cove` and use `\password cove` to set the role back to the old password, then recreate the database service as above. Verify the old connection and saved data before restarting writers. This password rollback preserves database writes; restoring a backup would instead revert data to its backup time and requires the separate [isolated recovery procedure](operations.md#isolated-recovery).
+
+For a fresh PostgreSQL 18 installation, the same backup, prompt-based role change and interrupted-rotation precautions apply, but first identify the actual `cove_cove-data-18` volume and current cluster rather than the PostgreSQL 17 volume. Run the commands from this checkout, keep the existing `POSTGRES_PASSWORD` and `DATABASE_URL` consistent until changing the role, and use `scripts/backup-local.mjs` with a new private destination. Verify an isolated restore and the latest independent deletion/revocation ledger before rotating. If the current mapping, credentials or ledger cannot be established, stop and use a tailored procedure; do not initialize a new database.
 
 ## Edit the app
 
