@@ -39,6 +39,8 @@ jobs:
       - run: pnpm build:local
       - run: pnpm exec playwright install --with-deps chromium
       - name: Run manual browser journey
+        env:
+          RATE_LIMIT: "10000"
         run: |
           pnpm start > /tmp/cove-server.log 2>&1 &
           node --input-type=module -e "for(let i=0;i<60;i++){try{const r=await fetch('http://localhost:4317/health/ready');if(r.ok)process.exit(0);}catch{}await new Promise(r=>setTimeout(r,1000));}process.exit(1);"
@@ -99,8 +101,18 @@ jobs:
             await service.saveConnection(actor,{clientId:'recovery-fixture',label:'Recovery fixture',grants:[{projectId:project.id,capabilities:['read']}]});
           } finally { await pool.end(); }
           NODE
+      - name: Verify the exclusive local backup
+        run: |
+          backup="$RUNNER_TEMP/cove-local-backup-fixture.dump"
+          node scripts/backup-local.mjs "$backup"
+          before=$(sha256sum "$backup")
+          if node scripts/backup-local.mjs "$backup"; then echo 'Existing backup was overwritten' >&2; exit 1; fi
+          test "$before" = "$(sha256sum "$backup")"
+          docker compose exec -T db createdb -U cove cove_backup_fixture
+          docker compose exec -T db pg_restore -U cove -d cove_backup_fixture --exit-on-error --no-owner < "$backup"
+          test "$(docker compose exec -T db psql -U cove -d cove_backup_fixture -Atc "SELECT count(*) FROM projects WHERE name='Recovery fixture'")" = 1
       - run: node scripts/backup-verify.mjs
-      - run: docker build -t cove:1.0.1 .
+      - run: docker build -t cove:1.0.2 .
       - run: node scripts/verify-container.mjs
       - uses: actions/upload-artifact@v4
         if: always()

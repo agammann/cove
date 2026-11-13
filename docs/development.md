@@ -36,7 +36,7 @@ pnpm start
 
 The setup script creates `.env` with independent random session and PostgreSQL credentials and preserves an existing file. Compose reads the PostgreSQL password from that file. Database data persists in the named `cove-data` volume. These defaults are for local development; see [operations](operations.md) for an independent production installation.
 
-For a versioned source installation, download `cove_1.0.1_source.zip` and its `.sha256` file from the [GitHub release](https://github.com/agammann/cove/releases/tag/v1.0.1), verify the checksum as described in [v1 delivery](v1.md#source-release), and extract it. Open a terminal in `cove-1.0.1` and start with `pnpm install --frozen-lockfile` above. The archive includes source, locked dependencies, migrations, and documentation; install dependencies and build the local server on your machine.
+The commands and credential behavior above describe this checkout. The published [v1.0.2 source archive](https://github.com/agammann/cove/releases/tag/v1.0.2) predates the generated database credential. Verify its checksum as described in [v1 delivery](v1.md#source-release), extract it, and follow the documentation included in that archive. No new release is implied by these checkout instructions.
 
 Keep that terminal running and open `http://localhost:4317` on the same computer. Create an account with a password of at least 12 characters. Open `http://localhost:8025` for Mailpit and follow the verification email's link. Mailpit captures development email; it does not deliver it to your real inbox. Password recovery uses it too.
 
@@ -46,11 +46,17 @@ To stop, press Ctrl+C in the server terminal and run `docker compose stop`. To r
 
 ### Rotate an existing local PostgreSQL password
 
-An existing `.env` and `cove-data` volume keep their previous password. Updating the source does not rotate either one. Stop the Cove app, keep the database available, and run `node scripts/backup-verify.mjs` with the current `.env` before changing credentials. Do not proceed if the backup verification fails.
+An existing `.env` and `cove-data` volume keep their previous password. Updating the source does not rotate either one. These steps are for the default local Compose project and its loopback database; if you use a different project name, external volume, bind mount, remote database, or Compose override, first identify the actual database and use a tailored procedure. Never run these commands against the production Compose project.
 
-Generate a new password with `node -e "console.log(require('node:crypto').randomBytes(32).toString('base64url'))"`. Keep the value private. In `.env`, add `POSTGRES_PASSWORD=<new password>` and set `DATABASE_URL=postgresql://cove:<same new password>@localhost:55439/cove`. The generated alphabet is URL safe. Preserve all other settings and the existing volume.
+Stop the Cove app and all other database writers. Before any Compose command, ensure inherited `DATABASE_URL`, `POSTGRES_PASSWORD`, `DOCKER_HOST`, `DOCKER_CONTEXT`, all `COMPOSE_*` variables and all `PG*` variables are unset for this terminal throughout the procedure. Remove such Docker, Compose and PostgreSQL selectors from `.env` as well. Do not use an automatic Compose override file. Check `docker context inspect --format '{{json .Endpoints.docker.Host}}'`: proceed only with a local `unix://` or `npipe://` endpoint, never a remote Docker context.
 
-Run `docker compose up -d --no-recreate db`, then `docker compose exec db psql -U cove -d cove`. At the `psql` prompt, enter `\password cove` and provide the same new password twice. Exit with `\q`. The password prompts do not place the value in a shell command. Finish with `docker compose up -d --force-recreate --wait db` and `pnpm db:migrate`, then restart the app. If the migration cannot connect, check that both `.env` fields contain the same new value before retrying; keep the backup and volume intact.
+Keep a private copy of the existing `.env` outside the checkout, with access restricted to the operator. In `.env`, add `POSTGRES_PASSWORD` equal to the **current** password already in `DATABASE_URL`; preserve all other values. This lets the new Compose file address the existing database without changing its password. The standard old and generated passwords use letters, digits, `_` and `-`; other credentials or URL query options require a tailored procedure. Confirm the expected existing `cove_cove-data` volume with `docker volume inspect cove_cove-data` and inspect `docker compose -p cove ps -a db`. If the expected volume or mapping is absent, stop and identify the installation; do not create a new database. Then start that same service if needed with `docker compose -p cove up -d --no-recreate --wait db`.
+
+Create a new private backup at an absolute path that does not already exist, for example `node scripts/backup-local.mjs /secure/cove-before-rotation.dump` on Linux or `node scripts/backup-local.mjs C:\secure\cove-before-rotation.dump` on Windows. Choose an appropriately protected directory; Windows users must set its access controls. The helper refuses to overwrite a file or use inherited selectors, requires a local Docker context, and checks both the Compose `db` published loopback port and PostgreSQL cluster identity against `DATABASE_URL` before and after the dump. These checks do not prove the contents are the intended data. It checks that the resulting archive can be listed, which is not a restore test. Restore it into a **separate isolated database** and verify the expected project history before proceeding; do not restore over the running database. The separate `backup-verify.mjs` script writes fixed paths and restarts the database, so do not use it as a substitute for this pre-rotation backup.
+
+Generate a new password with `node -e "console.log(require('node:crypto').randomBytes(32).toString('base64url'))"` and retain it privately until the change is complete. Run `docker compose -p cove exec db psql -U cove -d cove`. At the `psql` prompt, enter `\password cove` and provide the new password twice, then exit with `\q`. Update both `POSTGRES_PASSWORD` and the password portion of `DATABASE_URL` in `.env` to that same value; the generated alphabet is URL safe. Run `docker compose -p cove up -d --force-recreate --wait db`, then verify the app can connect before restarting other writers. Keep the old environment copy and verified backup until the change has been confirmed.
+
+If interrupted or the new connection fails, keep writers stopped. The database role may have changed even if `.env` has not. Restore the private old environment copy to `.env` and add its old database password as `POSTGRES_PASSWORD` so Compose can address the existing service; this edit does not change the role. Confirm the expected existing volume and project again, then, if needed, start the existing database with `docker compose -p cove up -d --no-recreate --wait db`. Open `docker compose -p cove exec db psql -U cove -d cove` and use `\password cove` to set the role back to the old password, then recreate the database service as above. Verify the old connection and saved data before restarting writers. This password rollback preserves database writes; restoring a backup would instead revert data to its backup time and requires the separate [isolated recovery procedure](operations.md#isolated-recovery).
 
 ## Edit the app
 
@@ -70,7 +76,16 @@ pnpm build:local
 pnpm exec playwright install chromium
 ```
 
-Start `pnpm start` in one terminal. In a second terminal, from the repository root, run:
+The browser journey makes many requests in one session. Stop the ordinary local server before running it, then start a disposable test server with `RATE_LIMIT=10000`. This changes only that test process; the application default remains 120 requests per minute and authentication keeps its separate limit.
+
+In PowerShell:
+
+```powershell
+$env:RATE_LIMIT = '10000'
+pnpm start
+```
+
+In a POSIX shell, use `RATE_LIMIT=10000 pnpm start`. Keep this test server running. In a second terminal, from the repository root, run:
 
 ```sh
 pnpm test:browser
@@ -80,7 +95,7 @@ pnpm audit --audit-level=moderate
 
 `pnpm test` includes PostgreSQL integration tests, so it needs a reachable database and permission to create disposable test databases. The default local development user has this permission. Those tests create uniquely named databases and remove only their own databases afterward.
 
-The browser suite expects the local app on port 4317 and Mailpit on port 8025. It creates synthetic accounts and exercises account deletion; a failed run may leave its test account for debugging. On Linux CI, install browser system dependencies with `pnpm exec playwright install --with-deps chromium`.
+The browser suite expects the local app on port 4317 and Mailpit on port 8025. It creates synthetic accounts and exercises account deletion; a failed run may leave its test account for debugging. Stop the test server afterward; in PowerShell, run `Remove-Item Env:RATE_LIMIT` in its terminal before starting an ordinary server again. On Linux CI, install browser system dependencies with `pnpm exec playwright install --with-deps chromium`.
 
 `pnpm check` runs lint, typechecking, all unit/integration tests, then the **Sites** build. It requires PostgreSQL for the tests and must be followed by `pnpm build:local` before starting the local server or its browser suite.
 
@@ -138,7 +153,7 @@ The [CI workflow](../.github/workflows/ci.yml) builds both distributions and run
 
 ```sh
 node scripts/backup-verify.mjs
-docker build -t cove:1.0.1 .
+docker build -t cove:1.0.2 .
 node scripts/verify-container.mjs
 ```
 
