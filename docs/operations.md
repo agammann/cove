@@ -24,6 +24,8 @@ docker compose -f compose.production.yaml up -d api proxy
 
 5. Verify live/readiness, email delivery, sign-up/recovery, OAuth discovery and PKCE, project isolation, a save/handoff/copy flow, two independent connections, revocation, and a restart on this deployment. Record the exact image/commit and date. A successful container build alone is not deployment verification.
 
+Caddy 2.11.9 limits request headers to 16 KiB, drops header names containing dots, and closes a request-body read or response write that makes no progress for one minute. Assess unusually large headers, dot-named headers, and stalled transfers for the target deployment before upgrading; tune Caddy server options only for a documented operational need. A local proxy test does not verify a public certificate, DNS, or the deployed service.
+
 The API runs non-root with a read-only container filesystem, no added Linux capabilities, and a private database network. Trusting proxy headers is allowed only because the API has no published host port and receives public traffic through Caddy. Do not expose its container port while `TRUST_PROXY=true`.
 
 ## Health and observability

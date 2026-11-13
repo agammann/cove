@@ -35,7 +35,7 @@ services:
       timeout: 5s
       retries: 3
   proxy:
-    image: caddy:2.10.2-alpine
+    image: caddy:2.11.9-alpine@sha256:4e2425f6009577e7c651010f16679c28f7d12df3e7b1914f941a7a3370746b3c
     environment:
       COVE_DOMAIN: ${COVE_DOMAIN:?Set the approved domain}
     ports: ["80:80", "443:443"]
