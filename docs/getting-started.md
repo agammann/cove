@@ -34,9 +34,9 @@ https://cove-context.alx21.chatgpt.site/api/mcp
 
 Complete the sign in and consent flow. In Cove, select only the projects and permissions the assistant needs. Use the save and continue prompts from the connection and handoff screens. Check the actual saved revision or handoff in Cove after an assistant reports success.
 
-Official SDK clients have been tested; live ChatGPT and Codex assistant host interactions remain unverified. Available setup controls differ by host and account. Consult the [MCP reference and compatibility matrix](mcp.md) before relying on an integration. Opening the MCP address as a browser page can return HTTP 405; it is a protocol endpoint, not the workspace.
+The [October 6 installed-plugin check](verification-2026-10-06.md) verified Codex save/readback, retries, stale-write rejection and fresh-assistant continuation from a pinned handoff with newer context present; the October 2 native Codex host check covered all seven tools. A separate ChatGPT web UI assistant connection remains unverified. Available setup controls differ by host and account. Consult the [MCP reference and compatibility matrix](mcp.md) before relying on an integration. Opening the MCP address as a browser page can return HTTP 405; it is a protocol endpoint, not the workspace.
 
-Use **Assistant connections** to review or revoke grants. Revocation blocks later requests, but does not remove copied text. A revoked connection currently requires a fresh OAuth client registration; see the reference for this limitation.
+Use **Assistant connections** to review or revoke grants. Revocation blocks later requests, but does not remove copied text. A revoked custom OAuth connection requires a fresh client registration. The managed Cove plugin instead supports explicit reauthorization with a new project selection and duration; that action replaces its existing grants, so review them first. See the reference for each path.
 
 Editing permissions keeps the connection's current expiration unless you explicitly select a new duration. A new duration starts when you save; keeping an already expired date does not reactivate access.
 

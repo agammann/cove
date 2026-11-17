@@ -1,5 +1,13 @@
 # Changelog
 
+## 2.0.0
+
+- Deliver the existing guarded, fresh-only PostgreSQL 18 installation and generated-credential/selector safeguards accumulated since 1.0.2. This is an operational compatibility break: preserve PostgreSQL 17 installations and prepare a separately reviewed migration rather than initializing a replacement. API, handoff and JSON schema 1 remain compatible.
+- Require the existing synthetic PostgreSQL 18 rehearsal as well as fresh-install guards before main publication. Preserve older source tags/assets.
+- Enable the supported SDK 2.3.0 collection guard at 20,000 elements for all three shared MCP routes, above the complete current schema bound of 16,415. Real authenticated HTTP regression checks reject excess collections, preserve the 128 KiB body cap, save/read a legitimate 600-entry context and retain live revocation behavior. No token, ownership or grant policy changes.
+- Patch Vite to 8.3.7 with Rolldown 1.2.19 for GHSA-p4f5-76q4-ffq7. The notice concerns explicitly network-exposed development servers; the default preview binds loopback. No production exploitation is claimed; the initial audit reported zero.
+- Preserve exact Git source bytes in ZIPs even when the packaging host has core.autocrlf=true. Correct current setup/delivery metadata and dated Codex/ChatGPT compatibility guidance without removing historical verification limits.
+
 ## 1.0.2
 
 - Update authentication, MCP, Fastify, Drizzle, validation, email and related dependencies, including upstream security fixes.

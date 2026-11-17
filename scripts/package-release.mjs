@@ -18,7 +18,7 @@ const directory = resolve('release-artifacts');
 mkdirSync(directory, { recursive: true });
 const filename = `cove_${version}_source.zip`;
 const output = resolve(directory, filename);
-execFileSync('git', ['archive', '--format=zip', `--prefix=cove-${version}/`, `--output=${output}`, 'HEAD'], { windowsHide: true });
+execFileSync('git', ['-c', 'core.autocrlf=false', 'archive', '--format=zip', `--prefix=cove-${version}/`, `--output=${output}`, 'HEAD'], { windowsHide: true });
 const digest = createHash('sha256').update(readFileSync(output)).digest('hex');
 writeFileSync(output + '.sha256', digest + '  ' + filename + '\n');
 console.log(`Packaged ${filename} from ${run(['rev-parse', 'HEAD'])}`);

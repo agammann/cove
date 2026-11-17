@@ -2,7 +2,13 @@
 
 [Documentation](README.md) · [User guide](getting-started.md) · [Local development](development.md)
 
-**Latest acceptance check:** [September 19 live verification and fixes](live-acceptance-2026-09-19.md). This includes ordinary ChatGPT sign in, desktop/mobile use, concurrent editing, real HTTPS OAuth/MCP clients, revocation, and the deployed expiration and empty-state fixes. Actual ChatGPT/Codex assistant host behavior remains unverified.
+**Latest recorded assistant acceptance:** [October 6 installed Codex plugin verification](verification-2026-10-06.md) covers exact save/readback, retries, stale writes and fresh-assistant continuation from a pinned handoff with newer context present. The [October 4 record](verification-assistant-2026-10-04.md) and earlier native Codex host test remain dated evidence. A separate ChatGPT web UI assistant connection remains unverified. These records do not imply a new current-candidate live test.
+
+Custom OAuth clients use `/api/mcp`; the managed Sites Cove plugin uses `/mcp` with its separately authorized grants. Connecting the plugin alone does not grant project access.
+
+## Historical launch and protocol checks — September 2026
+
+The following paragraphs preserve the launch-time state. Later assistant-host and managed-route evidence is linked above.
 
 **Live:** https://cove-context.alx21.chatgpt.site. Public publication succeeded on September 13, 2026. The live browser journey verified ChatGPT sign in, project creation, a saved context revision, handoff creation and copying, persistence after a full page reload, and archiving the synthetic verification project. Anonymous requests to private APIs were denied, including an attempted spoof of the dispatch identity headers. The live MCP address is `https://cove-context.alx21.chatgpt.site/api/mcp`; its authorization challenge and resource metadata were verified. A real external assistant host has not yet been connected.
 

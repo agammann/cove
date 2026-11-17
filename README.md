@@ -6,7 +6,7 @@ Cove keeps your project's goals, decisions, sources, progress, and next steps in
 
 **[Open Cove](https://cove-context.alx21.chatgpt.site)** · **[Getting started](docs/getting-started.md)** · **[Documentation](docs/README.md)**
 
-[Cove v1](docs/v1.md) defines the supported website, installed Codex plugin, and PostgreSQL source-installation paths. [Versioned releases](https://github.com/agammann/cove/releases) include source and SHA256 checksums.
+[Cove product v1 and source 2.0.0](docs/v1.md) define the supported website, installed Codex plugin, and PostgreSQL source-installation paths. Source 2.0.0 includes a breaking, fresh-only PostgreSQL 18 installation boundary; preserve existing PostgreSQL 17 data and use a separately reviewed migration. The seven-tool API and JSON export format remain version 1. [Versioned releases](https://github.com/agammann/cove/releases) include source and SHA256 checksums.
 
 ## Start with the website
 

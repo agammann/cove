@@ -39,7 +39,7 @@ pnpm start
 
 The setup script creates `.env` with independent random session and PostgreSQL credentials and preserves an existing file. For this checkout, the helper initializes a separate PostgreSQL 18 volume only after an explicit confirmation that this is a fresh installation. It validates that the default local URL and password match, checks the local Docker project, and refuses a populated legacy volume or nonempty target. It cannot discover a custom project, bind mount, external volume, remote database or an independent security ledger. First inventory those sources and stop all possible writers and storage changes. If any Cove database may contain data, keep its existing source, mapping, credentials and verified backups and use an installation-specific migration plan; do not initialize a new database as a substitute. Data for a confirmed fresh setup persists in `cove-data-18`; the old `cove-data` volume is mounted read-only and retained. See [the migration rehearsal](postgres18-rehearsal.md) and [operations](operations.md).
 
-The commands and credential behavior above describe this checkout. The published [v1.0.2 source archive](https://github.com/agammann/cove/releases/tag/v1.0.2) predates the generated database credential. Verify its checksum as described in [v1 delivery](v1.md#source-release), extract it, and follow the documentation included in that archive. No new release is implied by these checkout instructions.
+The commands and credential behavior above describe source 2.0.0. The immutable [v1.0.2 source archive](https://github.com/agammann/cove/releases/tag/v1.0.2) uses PostgreSQL 17 and predates the generated database credential and fresh-install guard. Verify the chosen archive as described in [source delivery](v1.md#source-release), extract it, and follow that archive’s included documentation. Existing installations need their own reviewed migration; do not run fresh initialization against their data.
 
 Keep that terminal running and open `http://localhost:4317` on the same computer. Create an account with a password of at least 12 characters. Open `http://localhost:8025` for Mailpit and follow the verification email's link. Mailpit captures development email; it does not deliver it to your real inbox. Password recovery uses it too.
 
@@ -160,7 +160,7 @@ The [CI workflow](../.github/workflows/ci.yml) builds both distributions and run
 
 ```sh
 node scripts/backup-verify.mjs
-docker build -t cove:1.0.2 .
+docker build -t cove:2.0.0 .
 node scripts/verify-container.mjs
 ```
 

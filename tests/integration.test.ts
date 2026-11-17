@@ -5,7 +5,7 @@ import { migrate } from "drizzle-orm/node-postgres/migrator";
 import { database } from "../packages/database/db.js";
 import { buildServer } from "../apps/api/server.js";
 import { readConfig } from "../apps/api/config.js";
-import { emptyContext } from "../packages/shared/context.js";
+import { emptyContext, contextSchema } from "../packages/shared/context.js";
 import type { Actor } from "../packages/domain/service.js";
 import {
   Client,
@@ -522,6 +522,89 @@ describe("real PostgreSQL transactions and isolation", () => {
       expect(stale.isError).toBe(true);
       expect((stale.structuredContent as any).error.code).toBe(
         "VERSION_CONFLICT",
+      );
+      const largeProject = await env.service.createProject(a, {
+        name: "Supported large MCP context",
+      });
+      await env.service.saveConnection(a, {
+        clientId: first.cid,
+        label: "SDK fixture A",
+        grants: [p.id, largeProject.id].map((projectId) => ({
+          projectId,
+          capabilities: ["read", "write", "handoff"],
+        })),
+      });
+      const largeContext = emptyContext();
+      for (const section of [
+        "constraints",
+        "decisions",
+        "notes",
+        "completedWork",
+        "nextSteps",
+        "openQuestions",
+      ] as const) {
+        largeContext[section] = Array.from({ length: 100 }, () => ({
+          id: randomUUID(),
+          text: "",
+          kind: "user-preference",
+          sourceIds: [],
+        }));
+      }
+      expect(Buffer.byteLength(JSON.stringify(largeContext))).toBeLessThan(
+        65536,
+      );
+      contextSchema.parse(largeContext);
+      const largeSaved = await first.client.callTool({
+        name: "cove_update_context",
+        arguments: {
+          projectId: largeProject.id,
+          expectedVersion: 1,
+          context: largeContext,
+          summary: "All six supported entry sections",
+          requestKey: randomUUID(),
+        },
+      });
+      expect(largeSaved.isError, JSON.stringify(largeSaved)).not.toBe(true);
+      expect((largeSaved.structuredContent as any).version).toBe(2);
+      const args = {
+        projectId: p.id,
+        detail: "full",
+        padding: Array(20001).fill(0),
+      };
+      expect(Buffer.byteLength(JSON.stringify(args))).toBeLessThan(131072);
+      const excessive = await first.client.callTool({
+        name: "cove_get_context",
+        arguments: args,
+      });
+      expect(excessive.isError).toBe(true);
+      expect(JSON.stringify(excessive.content)).toContain(
+        "maximum of 20000 elements",
+      );
+      const oversized = await fetch(`${origin}/mcp`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${first.token}`,
+        },
+        body: JSON.stringify({
+          jsonrpc: "2.0",
+          id: "oversized-fixture",
+          method: "tools/call",
+          params: {
+            name: "cove_get_context",
+            arguments: { projectId: p.id, padding: "x".repeat(131072) },
+          },
+        }),
+      });
+      expect(oversized.status).toBe(413);
+      expect((await oversized.json()).error.code).toBe("PAYLOAD_LIMIT");
+      const healthy = await first.client.callTool({
+        name: "cove_get_context",
+        arguments: { projectId: largeProject.id, detail: "full" },
+      });
+      expect(healthy.isError).not.toBe(true);
+      expect((healthy.structuredContent as any).revision.context).toEqual(
+        largeContext,
       );
       await env.service.revoke(a, first.connection.id);
       await expect(first.client.listTools()).rejects.toThrow();

@@ -20,6 +20,20 @@ jobs:
       - run: node scripts/test-postgres18-helper.mjs
       - run: node scripts/test-postgres18-guard.mjs
 
+  postgres18-rehearsal:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: "24"
+      - run: npm install --global pnpm@11.19.0
+      - run: pnpm install --frozen-lockfile
+      - run: node scripts/rehearse-postgres-18.mjs
+
   verify:
     runs-on: ubuntu-latest
     services:
@@ -135,7 +149,7 @@ jobs:
           test "$(docker compose exec -T db psql -U cove -d cove_backup_fixture -Atc "SELECT count(*) FROM projects WHERE name='Recovery fixture'")" = 1
           test "$(docker compose exec -T db psql -U cove -d cove_backup_fixture -Atc 'SELECT count(*) FROM cove_large_backup_fixture')" = 500000
       - run: node scripts/backup-verify.mjs
-      - run: docker build -t cove:1.0.2 .
+      - run: docker build -t cove:2.0.0 .
       - run: node scripts/verify-container.mjs
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         if: always()
@@ -288,7 +302,7 @@ jobs:
         run: exit 1
   publish:
     name: Publish verified source release
-    needs: [verify, recovery, source, caddy-validate, artifact-transfer, artifact-missing-guard, postgres18-guard]
+    needs: [verify, recovery, source, caddy-validate, artifact-transfer, artifact-missing-guard, postgres18-guard, postgres18-rehearsal]
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     permissions:
