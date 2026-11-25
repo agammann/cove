@@ -1,7 +1,7 @@
 name: cove-production
 services:
   db:
-    image: postgres:18.4-alpine
+    image: postgres:19.0-alpine
     entrypoint: ["sh", "/cove/postgres18-guard.sh", "start"]
     command: ["postgres"]
     environment:
