@@ -6,6 +6,13 @@ import { randomUUID, randomBytes, createHash } from "node:crypto";
 import { mkdir, writeFile } from "node:fs/promises";
 import { URL, URLSearchParams } from "node:url";
 import assert from "node:assert/strict";
+import metadata from "../package.json" with { type: "json" };
+const sdkVersions = {
+  client: metadata.dependencies["@modelcontextprotocol/client"],
+  server: metadata.dependencies["@modelcontextprotocol/server"],
+};
+for (const version of Object.values(sdkVersions))
+  assert.match(version, /^\d+\.\d+\.\d+$/, "Verification requires exact SDK pins.");
 const { fetch } = globalThis;
 const base = "http://localhost:4318";
 await mkdir("test-results", { recursive: true });
@@ -223,7 +230,8 @@ try {
       {
         date: new Date().toISOString(),
         runtime: "compiled Worker and real local D1 over HTTP",
-        sdk: "2.0.0",
+        sdk: sdkVersions,
+        sdkVersionSource: "Exact root dependency pins, installed with the frozen lockfile",
         signIn: "synthetic local identity",
         checks,
         failure,
